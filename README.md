@@ -4,25 +4,27 @@ Vendor Wars Clone
 
 ## How To Run
 
-<code>cd vendor-wars-2020<br>
-npm start</code>
+</code>npm run dev</code>
 
 ## To Do
 
-1. Base App Components
-   - Intro Page &#9745;
-   - Main app &#9745;
-   - Status area &#9745;
-   - Price list &#9745;
-   - Travel component &#9745;
-   - Bag list &#9745;
-   - Event popup &#9745;
-   - Action section &#9745;
-2. Initial CSS &#9745;
-3. Add database - Firebase &#9745;
+1. Add Tailwind CSS
+   - Change default theme
+2. Base App Components
+   - Day Summary
+   - Status area 
+   - Travel component 
+   - Price list 
+   - Bag list 
+   - Event popup 
+   - Action section 
+   - Menu
+3. Add database - Supabase
+   - How to
+   - Set up
 4. Functionality-
-   - Login - Firebase Auth &#9745;
-   - New Game &#9745;
+   - localStorage
+   - New Game --> clears localStorage
    - Buy
    - Sell
    - Calendar Events
@@ -33,12 +35,10 @@ npm start</code>
    - Actions
    - Loan Options
    - Store Options
-   - Save Game
-   - Continue Game
    - Switch Travel to Map
-5. CSS
-6. Cleanup
+5. Cleanup
    - Move code to separate components
    - Clean up theming
+      - Set Font
+      - Add Light Mode/Dark Mode
    - Add unit tests
-7. Online Multiplayer capabilities
