@@ -22,7 +22,17 @@ const theme = createTheme({
       styleOverrides: {
         root: {
           background: "var(--mui-palette-primary-main)",
-          height: "100vh",
+          borderRadius: "2%",
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          textAlign: "center",
+        },
+      },
+    },
+    MuiGrid: {
+      styleOverrides: {
+        root: {
           border: "3px solid var(--mui-palette-primary-dark)",
           borderRadius: "2%",
         },
@@ -30,5 +40,11 @@ const theme = createTheme({
     },
   },
 });
+
+declare module "@mui/material/Container" {
+  interface ContainerPropsVariantOverrides {
+    outlined: true;
+  }
+}
 
 export default theme;
