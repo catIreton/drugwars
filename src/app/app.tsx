@@ -1,6 +1,7 @@
 import Container from "@mui/material/Container";
 import Grid from "@mui/material/Grid";
 import Heading from "../components/heading/heading";
+import Status from "../components/status/status";
 
 function App() {
   return (
@@ -15,10 +16,10 @@ function App() {
           }}
         >
           <Grid size={12} sx={{ border: "none", height: "10vh" }}>
-            <Heading level={"h1"} text={"Main Title"}></Heading>
+            <Heading level={"h2"} text={"Drug Wars 2025: KC Edition"}></Heading>
           </Grid>
           <Grid size={6} sx={{ borderLeft: "none", height: "30vh" }}>
-            Lalalala
+            <Status></Status>
           </Grid>
           <Grid size={6} sx={{ borderRight: "none", height: "30vh" }}>
             Lalalala

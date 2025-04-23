@@ -41,10 +41,4 @@ const theme = createTheme({
   },
 });
 
-declare module "@mui/material/Container" {
-  interface ContainerPropsVariantOverrides {
-    outlined: true;
-  }
-}
-
 export default theme;

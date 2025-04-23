@@ -1,4 +1,4 @@
-import { Typography } from "@mui/material";
+import Typography from "@mui/material/Typography";
 
 interface HeadingProps {
   level: string;
@@ -6,7 +6,7 @@ interface HeadingProps {
 }
 
 const Heading = (props: HeadingProps) => {
-  return <Typography variant={props.level as "h1"}>Lalalalala</Typography>;
+  return <Typography variant={props.level as "h2"}>{props.text} </Typography>;
 };
 
 export default Heading;
