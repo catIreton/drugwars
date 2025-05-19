@@ -4,17 +4,17 @@ const theme = createTheme({
   cssVariables: true,
   palette: {
     background: {
-      default: "#6699CC",
+      default: "#0097A7",
     },
     primary: {
-      main: "#99cc66",
-      dark: "#37521b",
+      main: "#4dd0e1",
+      dark: "#b2ebf2",
     },
     secondary: {
-      main: "#189ab4",
+      main: "#ffecb3",
     },
     error: {
-      main: "#e32227",
+      main: "#3f51b5",
     },
   },
   components: {
@@ -22,19 +22,9 @@ const theme = createTheme({
       styleOverrides: {
         root: {
           background: "var(--mui-palette-primary-main)",
-          borderRadius: "2%",
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          textAlign: "center",
-        },
-      },
-    },
-    MuiGrid: {
-      styleOverrides: {
-        root: {
-          border: "3px solid var(--mui-palette-primary-dark)",
-          borderRadius: "2%",
+          margin: 0,
+          width: "100vw",
+          maxWidth: "1800px",
         },
       },
     },
