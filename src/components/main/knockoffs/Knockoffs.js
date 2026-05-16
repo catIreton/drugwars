@@ -38,10 +38,11 @@ const PriceCell = styled(TableCell)({
 });
 
 function Knockoffs() {
-  const { game, updateGame } = useGame();
+  const { game, buyItem, sellItem } = useGame();
   const [selectedDrug, setSelectedDrug] = useState(null);
   const [quantity, setQuantity] = useState(1);
   const [action, setAction] = useState('buy'); // 'buy' or 'sell'
+  const [error, setError] = useState(null);
 
   if (!game.location) {
     return (
@@ -66,27 +67,30 @@ function Knockoffs() {
     setSelectedDrug(drug);
     setAction(actionType);
     setQuantity(1);
+    setError(null);
   };
 
   const handleClose = () => {
     setSelectedDrug(null);
+    setError(null);
   };
 
   const handleConfirm = () => {
     if (!selectedDrug || quantity < 1) return;
 
     const price = getMarketPrice(selectedDrug.id, game.location, action === 'sell');
-    const totalCost = price * quantity;
+    const availableQty = getAvailableQuantity(selectedDrug.id, game.location);
 
-    if (action === 'buy') {
-      // TODO: Implement buy logic with validation
-      console.log(`Buying ${quantity}x ${selectedDrug.name} for $${totalCost}`);
-    } else {
-      // TODO: Implement sell logic with validation
-      console.log(`Selling ${quantity}x ${selectedDrug.name} for $${totalCost}`);
+    try {
+      if (action === 'buy') {
+        buyItem(selectedDrug.id, selectedDrug.name, quantity, price, availableQty);
+      } else {
+        sellItem(selectedDrug.id, selectedDrug.name, quantity, price);
+      }
+      handleClose();
+    } catch (err) {
+      setError(err.message);
     }
-
-    handleClose();
   };
 
   return (
@@ -151,7 +155,20 @@ function Knockoffs() {
           {action === 'buy' ? 'Buy' : 'Sell'} {selectedDrug?.name}
         </DialogTitle>
         <DialogContent>
-          <div style={{ paddingTop: '20px' }}>
+          {error && (
+            <div style={{
+              padding: '12px',
+              marginBottom: '16px',
+              backgroundColor: '#ffebee',
+              border: '1px solid #ff5252',
+              borderRadius: '4px',
+              color: '#c62828',
+              fontSize: '0.9em'
+            }}>
+              {error}
+            </div>
+          )}
+          <div style={{ paddingTop: error ? '10px' : '20px' }}>
             <TextField
               type="number"
               label="Quantity"
