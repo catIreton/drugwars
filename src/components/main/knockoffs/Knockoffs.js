@@ -27,9 +27,6 @@ const StyledTable = styled(Table)({
 
 const StyledTableRow = styled(TableRow)(({ theme }) => ({
   cursor: 'pointer',
-  '&:hover': {
-    background: 'rgba(0, 151, 167, 0.95)',
-  },
 }));
 
 const PriceCell = styled(TableCell)({

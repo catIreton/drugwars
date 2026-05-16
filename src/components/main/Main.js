@@ -27,11 +27,13 @@ function MainContent() {
     <MainDiv>
       <Container
         component="main"
-        maxWidth="lg"
+        maxWidth={false}
         style={{
           background: theme.palette.primary.main,
           height: '100vh',
           margin: 0,
+          padding: 0,
+          width: '100%',
         }}
       >
         <Section>
