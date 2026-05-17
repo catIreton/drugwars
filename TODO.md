@@ -20,24 +20,24 @@
 
 > Nothing is playable until buy/sell works. Start here.
 
-- [ ] 🔴 **Implement `buyItem(item, qty)`** in `GameContext.js`
+- [x] ✅ **Implement `buyItem(item, qty)`** in `GameContext.js`
   - Validate player has enough cash
   - Validate bag capacity won't be exceeded
   - Deduct cash, add item to `bag[]` in game state
   - Reduce available stock in the current location's market
   - _File: `src/components/GameContext.js`_
 
-- [ ] 🔴 **Implement `sellItem(item, qty)`** in `GameContext.js`
+- [x] ✅ **Implement `sellItem(item, qty)`** in `GameContext.js`
   - Validate player owns the item and quantity
   - Add cash, remove item from `bag[]`
   - _File: `src/components/GameContext.js`_
 
-- [ ] 🔴 **Wire up the Buy/Sell buttons** in the Market component
+- [x] ✅ **Wire up the Buy/Sell buttons** in the Market component
   - The `onClick` handler has a `// TODO` comment and does nothing
   - Connect it to the buy/sell functions above
   - _File: `src/components/main/market/Market.js`_
 
-- [ ] 🔴 **Implement the Dump action**
+- [x] ✅ **Implement the Dump action**
   - The "Dump" button in Actions is non-functional
   - Should drop all or selected items from bag (no cash return)
   - _File: `src/components/main/actions/Actions.js`_
@@ -291,13 +291,23 @@
 
 These are small changes with big visible impact:
 
-1. **Fix the hardcoded 2020 date** in `Events.js` — 5 minutes
-2. **Wire up Dump button** to clear the bag — 15 minutes
-3. **Add a basic `buyItem` function** with cash validation — 1 hour
-4. **Add a basic `sellItem` function** — 30 minutes
-5. **Create `src/data/drugs.js`** and pull hardcoded items out of `Market.js` — 45 minutes
-6. **Add "OUT OF STOCK" display** when drug qty is 0 — 20 minutes
-7. **Update app title to Drug Wars: KC Edition** — 10 minutes
+1. ✅ **Fix the hardcoded 2020 date** in `Events.js` — 5 minutes
+2. ✅ **Wire up Dump button** to clear the bag — 15 minutes
+3. ✅ **Add a basic `buyItem` function** with cash validation — 1 hour
+4. ✅ **Add a basic `sellItem` function** — 30 minutes
+5. ✅ **Create `src/data/drugs.js`** and pull hardcoded items out of `Market.js` — 45 minutes
+6. 🟢 **Add "OUT OF STOCK" display** when drug qty is 0 — 20 minutes
+7. 🟢 **Update app title to Drug Wars: KC Edition** — 10 minutes
+
+## Recent Changes (May 17, 2026)
+
+- ✅ **Fixed layout issues**: Reorganized main page with better flex proportions and spacing
+- ✅ **Modernized UI**: Added gradient background, glassmorphism cards, and improved typography
+- ✅ **Heat Level visual**: Replaced wanted level number with 5 police badge icons that fill with color
+- ✅ **Location-specific colors**: Each KC neighborhood has a unique color in the current location display
+- ✅ **Improved status panel**: Reorganized with weather image to the right and stats on the left
+- ✅ **Fixed ESLint warnings**: Removed unused imports and variables
+- ✅ **Buy/Sell functionality**: Both functions fully working with quantity selection dialog
 
 ---
 

@@ -10,11 +10,17 @@ import { useGame } from '../../GameContext';
 
 const BagContainer = styled('div')({
   flex: 1,
+  overflow: 'auto',
+  display: 'flex',
+  flexDirection: 'column',
 });
 
 const StyledTable = styled(Table)({
-  marginLeft: 'auto',
-  marginRight: 'auto',
+  width: '100%',
+  fontSize: '0.85rem',
+  '& th, & td': {
+    padding: '2px 8px',
+  },
 });
 
 function Bag() {
@@ -23,7 +29,7 @@ function Bag() {
 
   return (
     <BagContainer>
-      <h2>Bag Space: {bagUsed}/{game.bagCapacity}</h2>
+      <h2 style={{ margin: '0 0 8px 0', color: '#667eea', fontSize: '1.1rem' }}>Bag Space: {bagUsed}/{game.bagCapacity}</h2>
       <StyledTable>
         <TableHead>
           <TableRow>

@@ -33,15 +33,30 @@ const TaxiIcon = styled(LocalTaxiIcon)({
 });
 
 const CurrentLocContainer = styled('div')({
-  flex: '1',
   textAlign: 'center',
+  display: 'flex',
+  flexDirection: 'column',
+  alignItems: 'center',
+  justifyContent: 'center',
 });
 
 const TravelContainer = styled('div')({
-  display: 'flex',
-  flexDirection: 'row',
-  justifyContent: 'center',
+  display: 'grid',
+  gridTemplateColumns: '1fr 1fr',
+  gap: '4px',
+  flexGrow: 1,
 });
+
+const LOCATION_COLORS = {
+  'Northtown': '#8B4513',    // Brown - street/urban
+  'Plaza': '#D4AF37',         // Gold - high-end market
+  'Downtown': '#2C3E50',      // Dark blue - business district
+  'Westport': '#E74C3C',      // Red - party scene
+  'Brookside': '#27AE60',     // Green - local/nature
+  'Martin City': '#7D3C0C',   // Dark brown - street life
+  'Independence': '#9B59B6',  // Purple - suburban
+  'JOCO': '#3498DB',          // Light blue - wealthy suburbs
+};
 
 const LOCATIONS = [
   { name: 'Northtown', src: Northtown, ButtonComponent: 'primary' },
@@ -56,13 +71,14 @@ const LOCATIONS = [
 
 function CurrentLoc() {
   const { game } = useGame();
+  const locationColor = LOCATION_COLORS[game.location] || '#000000';
 
   return (
     <CurrentLocContainer>
-      <h1>Kansas City, MO</h1>
-      <h2>{game.location}</h2>
+      <h1 style={{ margin: '0 0 2px 0', fontSize: '1.1rem' }}>Kansas City, MO</h1>
+      <h2 style={{ margin: '0 0 10px 0', color: locationColor, fontSize: '1.3rem' }}>{game.location}</h2>
       <img
-        style={game.locationSrc ? { height: '200px', width: '200px' } : { display: 'none' }}
+        style={game.locationSrc ? { height: '150px', width: '150px', borderRadius: '8px' } : { display: 'none' }}
         src={game.locationSrc}
         alt={game.location}
       />
@@ -77,39 +93,21 @@ function Travel() {
     updateGame({ location: name, locationSrc: src, day: game.day + 1 });
   }
 
-  const left = LOCATIONS.slice(0, 4);
-  const right = LOCATIONS.slice(4);
-
   return (
-    <div style={{ flex: '1' }}>
-      <h2>Travel To</h2>
+    <div style={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
+      <h2 style={{ margin: '0 0 10px 0' }}>Travel To</h2>
       <TravelContainer>
-        <div style={{ flex: '1', paddingTop: '15px' }}>
-          {left.map(({ name, src, ButtonComponent }) =>
-            ButtonComponent === 'primary' ? (
-              <PrimaryButton key={name} variant="contained" onClick={() => handleTravel(name, src)}>
-                <TaxiIcon />{name}
-              </PrimaryButton>
-            ) : (
-              <SecondaryButton key={name} variant="contained" onClick={() => handleTravel(name, src)}>
-                <TaxiIcon />{name}
-              </SecondaryButton>
-            )
-          )}
-        </div>
-        <div style={{ flex: '1', paddingTop: '15px' }}>
-          {right.map(({ name, src, ButtonComponent }) =>
-            ButtonComponent === 'primary' ? (
-              <PrimaryButton key={name} variant="contained" onClick={() => handleTravel(name, src)}>
-                <TaxiIcon />{name}
-              </PrimaryButton>
-            ) : (
-              <SecondaryButton key={name} variant="contained" onClick={() => handleTravel(name, src)}>
-                <TaxiIcon />{name}
-              </SecondaryButton>
-            )
-          )}
-        </div>
+        {LOCATIONS.map(({ name, src, ButtonComponent }) =>
+          ButtonComponent === 'primary' ? (
+            <PrimaryButton key={name} variant="contained" onClick={() => handleTravel(name, src)} fullWidth size="small" sx={{ fontSize: '0.75rem' }}>
+              <TaxiIcon sx={{ fontSize: '1rem' }} />{name}
+            </PrimaryButton>
+          ) : (
+            <SecondaryButton key={name} variant="contained" onClick={() => handleTravel(name, src)} fullWidth size="small" sx={{ fontSize: '0.75rem' }}>
+              <TaxiIcon sx={{ fontSize: '1rem' }} />{name}
+            </SecondaryButton>
+          )
+        )}
       </TravelContainer>
     </div>
   );

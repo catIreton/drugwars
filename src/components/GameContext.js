@@ -116,8 +116,15 @@ export function GameProvider({ children }) {
     });
   }
 
+  function dumpBag() {
+    setGame(prev => ({
+      ...prev,
+      bag: [],
+    }));
+  }
+
   return (
-    <GameContext.Provider value={{ game, updateGame, buyItem, sellItem }}>
+    <GameContext.Provider value={{ game, updateGame, buyItem, sellItem, dumpBag }}>
       {children}
     </GameContext.Provider>
   );

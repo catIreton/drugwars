@@ -6,27 +6,57 @@ import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
 import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
-import Button from '@mui/material/Button';
+import IconButton from '@mui/material/IconButton';
 import Dialog from '@mui/material/Dialog';
 import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
 import TextField from '@mui/material/TextField';
+import Button from '@mui/material/Button';
+import Tooltip from '@mui/material/Tooltip';
+import ShoppingBagIcon from '@mui/icons-material/ShoppingBag';
+import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
 
 import { DRUGS, getMarketPrice, getAvailableQuantity, LOCATION_MARKETS } from '../../../data/drugs';
 import { useGame } from '../../GameContext';
 
 const KnockoffsContainer = styled('div')({
   flex: 1,
+  overflow: 'auto',
+  display: 'flex',
+  flexDirection: 'column',
+});
+
+const ActionCell = styled(TableCell)({
+  textAlign: 'right',
+  padding: '2px 8px',
+  display: 'flex',
+  gap: '4px',
+  justifyContent: 'flex-end',
+  alignItems: 'center',
+});
+
+const ActionIconButton = styled(IconButton)({
+  padding: '4px',
+  fontSize: '1.1rem',
+  '&:hover': {
+    transform: 'scale(1.15)',
+    transition: 'transform 0.2s ease',
+  },
 });
 
 const StyledTable = styled(Table)({
-  marginLeft: 'auto',
-  marginRight: 'auto',
+  width: '100%',
+  fontSize: '0.85rem',
+  '& th, & td': {
+    padding: '2px 8px',
+  },
 });
 
 const StyledTableRow = styled(TableRow)(({ theme }) => ({
-  cursor: 'pointer',
+  '&:hover': {
+    backgroundColor: 'rgba(102, 126, 234, 0.05)',
+  },
 }));
 
 const PriceCell = styled(TableCell)({
@@ -92,8 +122,8 @@ function Knockoffs() {
 
   return (
     <KnockoffsContainer>
-      <h2>Market - {game.location}</h2>
-      <p style={{ fontSize: '0.9em', color: '#999' }}>Heat: {marketLocation.heatLevel}</p>
+      <h2 style={{ margin: '0 0 4px 0', color: '#667eea', fontSize: '1.1rem' }}>Market - {game.location}</h2>
+      <p style={{ fontSize: '0.8em', color: '#9ca3af', margin: '0 0 8px 0' }}>Heat: {marketLocation.heatLevel}</p>
       <StyledTable size="small">
         <TableHead>
           <TableRow>
@@ -119,27 +149,28 @@ function Knockoffs() {
                 <PriceCell>${buyPrice}</PriceCell>
                 <PriceCell>${sellPrice}</PriceCell>
                 <TableCell align="right">{available}</TableCell>
-                <TableCell align="right">
+                <ActionCell>
                   {available > 0 && (
-                    <Button
-                      size="small"
-                      variant="contained"
-                      color="primary"
-                      onClick={() => handleRowClick(drug, 'buy')}
-                      style={{ marginRight: '5px' }}
-                    >
-                      Buy
-                    </Button>
+                    <Tooltip title="Buy" arrow>
+                      <ActionIconButton
+                        size="small"
+                        onClick={() => handleRowClick(drug, 'buy')}
+                        sx={{ color: '#667eea' }}
+                      >
+                        <ShoppingBagIcon fontSize="small" />
+                      </ActionIconButton>
+                    </Tooltip>
                   )}
-                  <Button
-                    size="small"
-                    variant="contained"
-                    color="secondary"
-                    onClick={() => handleRowClick(drug, 'sell')}
-                  >
-                    Sell
-                  </Button>
-                </TableCell>
+                  <Tooltip title="Sell" arrow>
+                    <ActionIconButton
+                      size="small"
+                      onClick={() => handleRowClick(drug, 'sell')}
+                      sx={{ color: '#10b981' }}
+                    >
+                      <AttachMoneyIcon fontSize="small" />
+                    </ActionIconButton>
+                  </Tooltip>
+                </ActionCell>
               </StyledTableRow>
             );
           })}
