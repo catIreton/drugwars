@@ -6,31 +6,43 @@ import LocalPoliceOutlinedIcon from '@mui/icons-material/LocalPoliceOutlined';
 import StarIcon from '@mui/icons-material/Star';
 import StarBorderIcon from '@mui/icons-material/StarBorder';
 import PersonIcon from '@mui/icons-material/Person';
-import SunnyDay from '../../../images/sunnyday.jpg';
+import WbSunnyIcon from '@mui/icons-material/WbSunny';
+import WbCloudyIcon from '@mui/icons-material/WbCloudy';
+import AcUnitIcon from '@mui/icons-material/AcUnit';
+import ThunderstormIcon from '@mui/icons-material/Thunderstorm';
+import GrainIcon from '@mui/icons-material/Grain';
+import AirIcon from '@mui/icons-material/Air';
+import NightsStayIcon from '@mui/icons-material/NightsStay';
 import { useGame } from '../../GameContext';
+
+const WEATHER_MAP = {
+  sunny:   { Icon: WbSunnyIcon,    color: '#f59e0b' },
+  cloudy:  { Icon: WbCloudyIcon,   color: '#94a3b8' },
+  rainy:   { Icon: GrainIcon,      color: '#60a5fa' },
+  snowy:   { Icon: AcUnitIcon,     color: '#bae6fd' },
+  stormy:  { Icon: ThunderstormIcon, color: '#c084fc' },
+  windy:   { Icon: AirIcon,        color: '#6ee7b7' },
+  night:   { Icon: NightsStayIcon, color: '#818cf8' },
+};
+
+function getWeatherEntry(weather) {
+  const key = weather?.toLowerCase() ?? '';
+  return WEATHER_MAP[key] ?? WEATHER_MAP.sunny;
+}
 
 const StatusContainer = styled('div')({
   display: 'flex',
-  flexDirection: 'row',
-  gap: '12px',
-  height: '100%',
-});
-
-const StatsPanel = styled('div')({
-  flex: 1,
-  display: 'flex',
   flexDirection: 'column',
-  gap: '6px',
-  minWidth: 0,
+  justifyContent: 'space-between',
+  height: '100%',
 });
 
 const HeaderRow = styled('div')({
   display: 'flex',
   justifyContent: 'space-between',
-  alignItems: 'baseline',
+  alignItems: 'center',
   borderBottom: '1px solid #e5e7eb',
   paddingBottom: '6px',
-  marginBottom: '2px',
 });
 
 const Title = styled('h1')({
@@ -40,6 +52,21 @@ const Title = styled('h1')({
   color: '#667eea',
 });
 
+const WeatherWidget = styled('div')(({ wxcolor }) => ({
+  display: 'flex',
+  alignItems: 'center',
+  gap: '4px',
+  fontFamily: 'Courier New, monospace',
+  fontSize: '0.72rem',
+  fontWeight: 700,
+  letterSpacing: '0.08em',
+  color: wxcolor,
+  background: `${wxcolor}18`,
+  border: `1px solid ${wxcolor}55`,
+  borderRadius: '4px',
+  padding: '2px 7px 2px 5px',
+}));
+
 const DayBadge = styled('span')({
   fontSize: '0.8rem',
   fontWeight: 600,
@@ -47,11 +74,14 @@ const DayBadge = styled('span')({
   background: 'rgba(102, 126, 234, 0.1)',
   padding: '2px 8px',
   borderRadius: '12px',
+  whiteSpace: 'nowrap',
 });
 
 const FinanceRow = styled('div')({
   display: 'flex',
   gap: '8px',
+  flex: 1,
+  margin: '6px 0',
 });
 
 const FinanceStat = styled('div')({
@@ -61,13 +91,15 @@ const FinanceStat = styled('div')({
   padding: '5px 8px',
   display: 'flex',
   flexDirection: 'column',
+  justifyContent: 'center',
 });
 
 const StatLabel = styled('span')({
   fontSize: '0.7rem',
-  color: '#9ca3af',
+  color: '#8b95c9',
   textTransform: 'uppercase',
-  letterSpacing: '0.05em',
+  letterSpacing: '0.08em',
+  fontWeight: 600,
 });
 
 const StatValue = styled('span')({
@@ -79,6 +111,8 @@ const StatValue = styled('span')({
 const IconRow = styled('div')({
   display: 'flex',
   gap: '8px',
+  flex: 1,
+  margin: '0 0 6px 0',
 });
 
 const IconStat = styled('div')({
@@ -89,6 +123,7 @@ const IconStat = styled('div')({
   display: 'flex',
   flexDirection: 'column',
   gap: '3px',
+  justifyContent: 'center',
 });
 
 const IconGroup = styled('div')({
@@ -107,22 +142,6 @@ const HeatRow = styled('div')({
   padding: '5px 8px',
 });
 
-const WeatherPanel = styled('div')({
-  display: 'flex',
-  flexDirection: 'column',
-  alignItems: 'center',
-  gap: '6px',
-  flexShrink: 0,
-});
-
-const StatusPhoto = styled('img')({
-  height: '90px',
-  width: '90px',
-  borderRadius: '8px',
-  boxShadow: '0 4px 12px rgba(102, 126, 234, 0.2)',
-  objectFit: 'cover',
-});
-
 function Status() {
   const { game } = useGame();
 
@@ -136,69 +155,67 @@ function Status() {
   const prestigeStars = Math.round((game.prestige / 100) * 5);
   const crewDisplay = Math.min(game.crew, 6);
   const crewOverflow = game.crew > 6 ? game.crew - 6 : 0;
+  const { Icon: WeatherIcon, color: wxColor } = getWeatherEntry(game.weather);
 
   return (
     <StatusContainer>
-      <StatsPanel>
-        <HeaderRow>
-          <Title>Kansas City</Title>
-          <DayBadge>Day {game.day}/60</DayBadge>
-        </HeaderRow>
+      <HeaderRow>
+        <WeatherWidget wxcolor={wxColor}>
+          <WeatherIcon sx={{ fontSize: '0.95rem' }} />
+          {game.weather}
+        </WeatherWidget>
+        <Title>Kansas City</Title>
+        <DayBadge>Day {game.day}/60</DayBadge>
+      </HeaderRow>
 
-        <FinanceRow>
-          <FinanceStat>
-            <StatLabel>Cash</StatLabel>
-            <StatValue style={{ color: '#059669' }}>${game.cash.toLocaleString()}</StatValue>
-          </FinanceStat>
-          <FinanceStat>
-            <StatLabel>Debt</StatLabel>
-            <StatValue style={{ color: '#ef4444' }}>${game.debt.toLocaleString()}</StatValue>
-          </FinanceStat>
-        </FinanceRow>
+      <FinanceRow>
+        <FinanceStat>
+          <StatLabel>Cash</StatLabel>
+          <StatValue style={{ color: '#059669' }}>${game.cash.toLocaleString()}</StatValue>
+        </FinanceStat>
+        <FinanceStat>
+          <StatLabel>Debt</StatLabel>
+          <StatValue style={{ color: '#ef4444' }}>${game.debt.toLocaleString()}</StatValue>
+        </FinanceStat>
+      </FinanceRow>
 
-        <IconRow>
-          <IconStat>
-            <StatLabel>Prestige</StatLabel>
-            <IconGroup>
-              {[...Array(5)].map((_, i) =>
-                i < prestigeStars
-                  ? <StarIcon key={i} sx={{ fontSize: '1rem', color: '#D4AF37' }} />
-                  : <StarBorderIcon key={i} sx={{ fontSize: '1rem', color: '#d1d5db' }} />
-              )}
-            </IconGroup>
-          </IconStat>
-          <IconStat>
-            <StatLabel>Crew</StatLabel>
-            <IconGroup>
-              {game.crew === 0
-                ? <span style={{ fontSize: '0.8rem', color: '#9ca3af' }}>None</span>
-                : <>
-                    {[...Array(crewDisplay)].map((_, i) => (
-                      <PersonIcon key={i} sx={{ fontSize: '1rem', color: '#667eea' }} />
-                    ))}
-                    {crewOverflow > 0 && (
-                      <span style={{ fontSize: '0.75rem', color: '#667eea', fontWeight: 600 }}>+{crewOverflow}</span>
-                    )}
-                  </>
-              }
-            </IconGroup>
-          </IconStat>
-        </IconRow>
+      <IconRow>
+        <IconStat>
+          <StatLabel>Prestige</StatLabel>
+          <IconGroup>
+            {[...Array(5)].map((_, i) =>
+              i < prestigeStars
+                ? <StarIcon key={i} sx={{ fontSize: '1rem', color: '#D4AF37' }} />
+                : <StarBorderIcon key={i} sx={{ fontSize: '1rem', color: '#d1d5db' }} />
+            )}
+          </IconGroup>
+        </IconStat>
+        <IconStat>
+          <StatLabel>Crew</StatLabel>
+          <IconGroup>
+            {game.crew === 0
+              ? <span style={{ fontSize: '0.8rem', color: '#9ca3af' }}>None</span>
+              : <>
+                  {[...Array(crewDisplay)].map((_, i) => (
+                    <PersonIcon key={i} sx={{ fontSize: '1rem', color: '#667eea' }} />
+                  ))}
+                  {crewOverflow > 0 && (
+                    <span style={{ fontSize: '0.75rem', color: '#667eea', fontWeight: 600 }}>+{crewOverflow}</span>
+                  )}
+                </>
+            }
+          </IconGroup>
+        </IconStat>
+      </IconRow>
 
-        <HeatRow>
-          <StatLabel style={{ marginRight: '4px' }}>Heat</StatLabel>
-          {[...Array(5)].map((_, i) =>
-            i < game.wantedLevel
-              ? <LocalPoliceIcon key={i} sx={{ fontSize: '1rem', color: getWantedColor(game.wantedLevel) }} />
-              : <LocalPoliceOutlinedIcon key={i} sx={{ fontSize: '1rem', color: '#d1d5db' }} />
-          )}
-        </HeatRow>
-      </StatsPanel>
-
-      <WeatherPanel>
-        <StatusPhoto src={SunnyDay} alt="Weather" />
-        <span style={{ fontSize: '0.8rem', color: '#667eea', fontWeight: 600 }}>{game.weather}</span>
-      </WeatherPanel>
+      <HeatRow>
+        <StatLabel style={{ marginRight: '4px' }}>Heat</StatLabel>
+        {[...Array(5)].map((_, i) =>
+          i < game.wantedLevel
+            ? <LocalPoliceIcon key={i} sx={{ fontSize: '1rem', color: getWantedColor(game.wantedLevel) }} />
+            : <LocalPoliceOutlinedIcon key={i} sx={{ fontSize: '1rem', color: '#d1d5db' }} />
+        )}
+      </HeatRow>
     </StatusContainer>
   );
 }

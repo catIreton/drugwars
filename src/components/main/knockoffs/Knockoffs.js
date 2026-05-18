@@ -16,9 +16,44 @@ import Button from '@mui/material/Button';
 import Tooltip from '@mui/material/Tooltip';
 import ShoppingBagIcon from '@mui/icons-material/ShoppingBag';
 import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
+import WhatshotIcon from '@mui/icons-material/Whatshot';
+import WhatshotOutlinedIcon from '@mui/icons-material/WhatshotOutlined';
 
 import { DRUGS, getMarketPrice, getAvailableQuantity, LOCATION_MARKETS } from '../../../data/drugs';
 import { useGame } from '../../GameContext';
+
+const HEAT_MAP = {
+  'Very Hot': { color: '#ef4444', level: 4 },
+  'Hot':      { color: '#f97316', level: 3 },
+  'Moderate': { color: '#f59e0b', level: 2 },
+  'Mild':     { color: '#10b981', level: 1 },
+};
+
+const MarketHeader = styled('div')({
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+  margin: '0 0 8px 0',
+  borderBottom: '1px solid #e5e7eb',
+  paddingBottom: '6px',
+});
+
+const HeatBadge = styled('div')(({ heatcolor }) => ({
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: '1px',
+  background: `${heatcolor}18`,
+  border: `1px solid ${heatcolor}55`,
+  borderRadius: '6px',
+  padding: '3px 8px 3px 5px',
+  color: heatcolor,
+  fontFamily: 'Courier New, monospace',
+  fontSize: '0.72rem',
+  fontWeight: 700,
+  letterSpacing: '0.08em',
+  textTransform: 'uppercase',
+  whiteSpace: 'nowrap',
+}));
 
 const KnockoffsContainer = styled('div')({
   flex: 1,
@@ -29,7 +64,7 @@ const KnockoffsContainer = styled('div')({
 
 const ActionCell = styled(TableCell)({
   textAlign: 'right',
-  padding: '2px 8px',
+  padding: '3px 8px',
   display: 'flex',
   gap: '4px',
   justifyContent: 'flex-end',
@@ -37,7 +72,7 @@ const ActionCell = styled(TableCell)({
 });
 
 const ActionIconButton = styled(IconButton)({
-  padding: '4px',
+  padding: '2px',
   fontSize: '1.1rem',
   '&:hover': {
     transform: 'scale(1.15)',
@@ -45,11 +80,30 @@ const ActionIconButton = styled(IconButton)({
   },
 });
 
+const DrugBadge = styled('span')(({ drugcolor }) => ({
+  display: 'inline-flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  width: '24px',
+  height: '24px',
+  borderRadius: '6px',
+  background: `${drugcolor}22`,
+  border: `1px solid ${drugcolor}55`,
+  fontSize: '0.9rem',
+  marginRight: '8px',
+  flexShrink: 0,
+}));
+
+const DrugNameCell = styled(TableCell)({
+  padding: '3px 8px',
+  minWidth: '140px',
+});
+
 const StyledTable = styled(Table)({
   width: '100%',
   fontSize: '0.85rem',
   '& th, & td': {
-    padding: '2px 8px',
+    padding: '3px 8px',
   },
 });
 
@@ -122,12 +176,26 @@ function Knockoffs() {
 
   return (
     <KnockoffsContainer>
-      <h2 style={{ margin: '0 0 4px 0', color: '#667eea', fontSize: '1.1rem' }}>Market - {game.location}</h2>
-      <p style={{ fontSize: '0.8em', color: '#9ca3af', margin: '0 0 8px 0' }}>Heat: {marketLocation.heatLevel}</p>
+      <MarketHeader>
+        <h2 style={{ margin: 0, color: '#667eea', fontSize: '1.1rem' }}>Market — {game.location}</h2>
+        {(() => {
+          const heat = HEAT_MAP[marketLocation.heatLevel] ?? HEAT_MAP['Moderate'];
+          return (
+            <HeatBadge heatcolor={heat.color}>
+              {[...Array(4)].map((_, i) =>
+                i < heat.level
+                  ? <WhatshotIcon key={i} sx={{ fontSize: '0.95rem' }} />
+                  : <WhatshotOutlinedIcon key={i} sx={{ fontSize: '0.95rem', color: '#d1d5db' }} />
+              )}
+              &nbsp;{marketLocation.heatLevel}
+            </HeatBadge>
+          );
+        })()}
+      </MarketHeader>
       <StyledTable size="small">
         <TableHead>
           <TableRow>
-            <TableCell style={{ width: '180px' }}>Drug</TableCell>
+            <TableCell style={{ width: '180px', padding: '3px 8px' }}>Drug</TableCell>
             <TableCell align="right">Buy Price</TableCell>
             <TableCell align="right">Sell Price</TableCell>
             <TableCell align="right">Available</TableCell>
@@ -142,10 +210,14 @@ function Knockoffs() {
 
             return (
               <StyledTableRow key={drug.id}>
-                <TableCell>
-                  <strong>{drug.name}</strong>
-                  <div style={{ fontSize: '0.8em', color: '#999' }}>{drug.description}</div>
-                </TableCell>
+                <DrugNameCell>
+                  <Tooltip title={drug.description} arrow placement="right">
+                    <span style={{ display: 'flex', alignItems: 'center', cursor: 'default' }}>
+                      <DrugBadge drugcolor={drug.color}>{drug.emoji}</DrugBadge>
+                      <strong style={{ color: drug.color, letterSpacing: '0.02em' }}>{drug.name}</strong>
+                    </span>
+                  </Tooltip>
+                </DrugNameCell>
                 <PriceCell>${buyPrice}</PriceCell>
                 <PriceCell>${sellPrice}</PriceCell>
                 <TableCell align="right">{available}</TableCell>

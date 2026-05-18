@@ -193,7 +193,7 @@ function Travel() {
         }, 100);
       } else {
         const script = document.createElement('script');
-        script.src = `https://maps.googleapis.com/maps/api/js?key=AIzaSyB3MI9WQIf_LCU2DHj5uN0IWjXwN86dHag`;
+        script.src = `https://maps.googleapis.com/maps/api/js?key=${process.env.REACT_APP_GOOGLE_MAPS_KEY}`;
         script.async = true;
         script.defer = true;
         script.onload = () => {

@@ -1,113 +1,117 @@
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+# Drug Wars 2026: KC Edition
 
-## Available Scripts
+A Kansas City-themed remake of the classic 1984 drug trading game, built with React and MUI.
 
-In the project directory, you can run:
+Play the streets of KC — buy low, sell high, dodge the heat, and cash out before day 60.
 
-### `npm start`
+**Live demo:** [cat-ireton.github.io/drugwars](https://cat-ireton.github.io/drugwars)
 
-Runs the app in the development mode.<br />
-Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
+---
 
-The page will reload if you make edits.<br />
-You will also see any lint errors in the console.
+## Tech Stack
 
-### `npm test`
+| Layer | Choice |
+|---|---|
+| Framework | React 19 + Create React App |
+| UI | Material UI v5 (`@mui/material`, `@mui/icons-material`) |
+| State | React Context + sessionStorage persistence |
+| Map | Google Maps JavaScript API |
+| Deploy | GitHub Pages (`gh-pages`) |
+| Tests | Jest + `@testing-library/react` |
 
-Launches the test runner in the interactive watch mode.<br />
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+---
 
-### `npm run build`
+## Getting Started
 
-Builds the app for production to the `build` folder.<br />
-It correctly bundles React in production mode and optimizes the build for the best performance.
+```bash
+npm install
+npm start        # dev server at localhost:3000
+npm test         # 22 unit tests
+npm run build    # production bundle
+npm run deploy   # push to GitHub Pages
+```
 
-The build is minified and the filenames include the hashes.<br />
-Your app is ready to be deployed!
+> **Windows hot reload:** `WATCHPACK_POLLING=true` is set in `.env` — no manual restarts needed.
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+---
 
-### `npm run eject`
+## Project Layout
 
-**Note: this is a one-way operation. Once you `eject`, you can’t go back!**
+```
+src/
+  components/
+    main/
+      actions/    # Terminal-style action panel (Dump, Loan, Store, Finances)
+      bag/        # "The Case" — briefcase-themed inventory panel
+      events/     # Daily Events chyron ticker
+      knockoffs/  # Drug market table with buy/sell dialog
+      status/     # Status card (cash, debt, prestige, crew, heat, weather)
+      travel/     # Google Maps travel panel + CurrentLoc image
+    GameContext.js  # Global game state, buyItem/sellItem/dumpBag
+  data/
+    drugs.js        # Drug definitions, location market data, price functions
+  gameState.js      # INITIAL_STATE, sessionStorage load/save
+public/
+  images/           # KC neighborhood photos
+  favicon.svg       # Split pill icon (purple/gold)
+```
 
-If you aren’t satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+---
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you’re on your own.
+## What's Working
 
-You don’t have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn’t feel obligated to use this feature. However we understand that this tool wouldn’t be useful if you couldn’t customize it when you are ready for it.
+- **Market** — buy and sell all 6 drugs with quantity input and validation; colored emoji badges per drug; heat level indicator with flame icons
+- **Bag** — "The Case" shows current inventory, capacity bar, dump action
+- **Status card** — cash, debt, prestige stars, crew icons, 5-tier heat badges, retro weather icon
+- **Travel** — Google Maps with color-coded neighborhood markers; clicking a pin updates the location image
+- **Events ticker** — chyron-style scrolling news strip
+- **Actions panel** — terminal-style green-text command interface; Dump is wired up
+- **Persistence** — game state survives page refresh via sessionStorage
+- **Unit tests** — 22 tests covering gameState I/O and all GameContext actions
 
-## Learn More
+---
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+## Roadmap
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+### Phase 1 — Core Game Loop
+- [ ] **Game over / win screen** — at day 60, score = cash − debt + prestige bonus; show results
+- [ ] **Day advance** — travel should consume a day and trigger market refresh
 
-### Code Splitting
+### Phase 2 — Dynamic Market
+- [ ] **Price randomization on travel** — ±30–50% of base price per location visit
+- [ ] **Price spike / fire sale events** — occasional 3× or 1/3 price event, shown in ticker
+- [ ] **Out-of-stock display** — show "OUT OF STOCK" when qty reaches 0
 
-This section has moved here: https://facebook.github.io/create-react-app/docs/code-splitting
+### Phase 3 — Financial Mechanics
+- [ ] **Debt interest** — compound daily (10%/day); currently tracked but never grows
+- [ ] **Loan action** — borrow cash, increase debt
+- [ ] **Finances screen** — breakdown of cash, debt, interest rate, projected payoff
+- [ ] **Bankruptcy condition** — game over if debt exceeds threshold with no cash
 
-### Analyzing the Bundle Size
+### Phase 4 — Risk & Law Enforcement
+- [ ] **Wanted level changes** — risky transactions raise heat; lying low reduces it
+- [ ] **Police encounter events** — raids at high wanted level; outcome depends on crew size
+- [ ] **Wanted level consequences** — price penalties at level 3–4; travel costs at level 5
 
-This section has moved here: https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size
+### Phase 5 — Crew System
+- [ ] **Crew recruitment** — hire via Store button; crew adds bag capacity and raid protection
+- [ ] **Crew upkeep** — daily cash cost per crew member
 
-### Making a Progressive Web App
+### Phase 6 — Events & Calendar
+- [ ] **Dynamic event calendar** — randomly assign events to days 1–60 at game start
+- [ ] **Live ticker** — connect chyron to today's actual game events
+- [ ] **Weather effects** — weather changes daily and affects travel / prices
 
-This section has moved here: https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app
+### Phase 7 — Persistence & Auth
+- [ ] **Firebase Auth** — sign in / sign up (infrastructure exists, not wired)
+- [ ] **Cloud save** — persist game state to Firebase instead of sessionStorage
+- [ ] **Leaderboard** — top 10 final scores
 
-### Advanced Configuration
+### Phase 8 — Polish
+- [ ] **Cash / debt animations** — flash green/red on change
+- [ ] **Mobile layout** — current layout is desktop-only
+- [ ] **KC flavor text** — neighborhood-specific event messages in the ticker
 
-This section has moved here: https://facebook.github.io/create-react-app/docs/advanced-configuration
+---
 
-### Deployment
-
-This section has moved here: https://facebook.github.io/create-react-app/docs/deployment
-
-### `npm run build` fails to minify
-
-This section has moved here: https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify
-
-# Vendor Wars 2020
-
-Vendor Wars Clone
-
-## How To Run
-
-<code>cd vendor-wars-2020<br>
-npm start</code>
-
-## To Do
-
-1. Base App Components
-   - Intro Page &#9745;
-   - Main app &#9745;
-   - Status area &#9745;
-   - Price list &#9745;
-   - Travel component &#9745;
-   - Bag list &#9745;
-   - Event popup &#9745;
-   - Action section &#9745;
-2. Initial CSS &#9745;
-3. Add database - Firebase &#9745;
-4. Functionality-
-   - Login - Firebase Auth &#9745;
-   - New Game &#9745;
-   - Buy
-   - Sell
-   - Calendar Events
-   - Trigger Random Events
-   - Travel
-   - Bag
-   - Price changes
-   - Actions
-   - Loan Options
-   - Store Options
-   - Save Game
-   - Continue Game
-   - Switch Travel to Map
-5. CSS
-6. Cleanup
-   - Move code to separate components
-   - Clean up theming
-   - Add unit tests
-7. Online Multiplayer capabilities
+*React 19 + MUI 5 | Kansas City, MO | May 2026*

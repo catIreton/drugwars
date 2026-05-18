@@ -1,33 +1,52 @@
 import React from 'react';
-
 import { styled } from '@mui/material/styles';
 
-const EventsContainer = styled('div')({
-  flex: 1,
-  overflow: 'hidden',
+const ChyronBar = styled('div')({
   display: 'flex',
-  flexDirection: 'column',
-  gap: '8px',
+  alignItems: 'stretch',
+  height: '44px',
+  width: '100%',
+  fontFamily: 'Courier New, Courier, monospace',
+  overflow: 'hidden',
 });
 
-const TickerOuter = styled('div')({
+const Label = styled('div')({
   display: 'flex',
   alignItems: 'center',
-  backgroundColor: '#2C3E50',
-  color: '#D4AF37',
-  fontFamily: 'Courier New, Courier, monospace',
-  fontSize: '1rem',
-  overflow: 'hidden',
+  justifyContent: 'center',
+  padding: '0 16px',
+  background: '#D4AF37',
+  color: '#1a2535',
+  fontWeight: 700,
+  fontSize: '0.78rem',
+  letterSpacing: '0.15em',
+  textTransform: 'uppercase',
   whiteSpace: 'nowrap',
-  borderRadius: '8px',
+  flexShrink: 0,
+  borderRadius: 0,
+  margin: 0,
+});
+
+const LabelText = styled('span')({});
+
+const TickerTrack = styled('div')({
   flex: 1,
+  overflow: 'hidden',
+  display: 'flex',
+  alignItems: 'center',
+  background: '#2C3E50',
+  borderLeft: 'none',
 });
 
 const TickerInner = styled('div')({
   display: 'inline-block',
+  whiteSpace: 'nowrap',
   paddingLeft: '100%',
-  animation: 'scrollText 18s linear infinite',
-  '@keyframes scrollText': {
+  color: '#D4AF37',
+  fontSize: '0.9rem',
+  letterSpacing: '0.04em',
+  animation: 'tickerScroll 22s linear infinite',
+  '@keyframes tickerScroll': {
     '0%': { transform: 'translateX(0)' },
     '100%': { transform: 'translateX(-100%)' },
   },
@@ -35,14 +54,14 @@ const TickerInner = styled('div')({
 
 function Events() {
   return (
-    <EventsContainer>
-      <h2 style={{ margin: '0', color: '#667eea', fontSize: '1.1rem' }}>Daily Events</h2>
-      <TickerOuter>
+    <ChyronBar>
+      <Label><LabelText>Daily Events</LabelText></Label>
+      <TickerTrack>
         <TickerInner>
-          {['TODAY: Transit delays on I-35', 'EVENT: Downtown street fair 6pm', 'NOTE: New bus routes added'].join('   •   ')}
+          {['TODAY: Transit delays on I-35', 'EVENT: Downtown street fair 6pm', 'NOTE: New bus routes added', 'ALERT: Heat up in Westport tonight'].join('     ◆     ')}
         </TickerInner>
-      </TickerOuter>
-    </EventsContainer>
+      </TickerTrack>
+    </ChyronBar>
   );
 }
 

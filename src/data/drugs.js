@@ -7,6 +7,8 @@ export const DRUGS = [
   {
     id: 'weed',
     name: 'Weed',
+    emoji: '🌿',
+    color: '#16a34a',
     basePrice: 200,
     risk: 1,
     description: 'Cannabis - low risk, steady demand',
@@ -14,6 +16,8 @@ export const DRUGS = [
   {
     id: 'speed',
     name: 'Speed',
+    emoji: '⚡',
+    color: '#2563eb',
     basePrice: 300,
     risk: 2,
     description: 'Amphetamines - moderate risk, good profit',
@@ -21,6 +25,8 @@ export const DRUGS = [
   {
     id: 'heroin',
     name: 'Heroin',
+    emoji: '💉',
+    color: '#dc2626',
     basePrice: 500,
     risk: 4,
     description: 'High risk, high reward - addictive',
@@ -28,6 +34,8 @@ export const DRUGS = [
   {
     id: 'cocaine',
     name: 'Cocaine',
+    emoji: '❄️',
+    color: '#64748b',
     basePrice: 1500,
     risk: 3,
     description: 'Premium drug - high prices in right places',
@@ -35,6 +43,8 @@ export const DRUGS = [
   {
     id: 'lsd',
     name: 'LSD',
+    emoji: '🔮',
+    color: '#9333ea',
     basePrice: 800,
     risk: 2,
     description: 'Acid - specialty item, university markets',
@@ -42,6 +52,8 @@ export const DRUGS = [
   {
     id: 'opium',
     name: 'Opium',
+    emoji: '🌺',
+    color: '#be123c',
     basePrice: 2500,
     risk: 5,
     description: 'Extreme risk, extreme profit potential',

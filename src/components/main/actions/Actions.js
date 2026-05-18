@@ -1,67 +1,79 @@
 import React from 'react';
 import { styled } from '@mui/material/styles';
-import Button from '@mui/material/Button';
 import { useGame } from '../../GameContext';
-import DeleteIcon from '@mui/icons-material/Delete';
-import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
-import SellIcon from '@mui/icons-material/Sell';
-import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
-import StorefrontIcon from '@mui/icons-material/Storefront';
-import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
-import Inventory2Icon from '@mui/icons-material/Inventory2';
 
-const PrimaryButton = styled(Button)({
-  background: 'linear-gradient(135deg, #4f46e5 0%, #0ea5e9 100%)',
-  color: '#ffffff',
-  fontWeight: '700',
-  fontSize: '0.85rem',
-  padding: '8px 12px',
-  borderRadius: '8px',
-  textTransform: 'none',
-  letterSpacing: '0.2px',
-  boxShadow: '0 6px 18px rgba(15, 23, 42, 0.15)',
-  transition: 'all 0.18s ease',
-  border: '1px solid rgba(0,0,0,0.06)',
+const Terminal = styled('div')({
+  display: 'flex',
+  flexDirection: 'column',
+  height: '100%',
+  fontFamily: 'Courier New, monospace',
+  color: '#00ff41',
+});
+
+const TermHeader = styled('div')({
+  fontSize: '0.7rem',
+  color: '#00aa28',
+  marginBottom: '8px',
+  paddingBottom: '6px',
+  borderBottom: '1px solid rgba(0,255,65,0.2)',
+  letterSpacing: '0.05em',
+});
+
+const TermTitle = styled('div')({
+  fontSize: '0.88rem',
+  fontWeight: 'bold',
+  marginBottom: '10px',
+  letterSpacing: '0.12em',
+  color: '#39ff14',
+  textShadow: '0 0 6px rgba(57,255,20,0.6)',
+});
+
+const CmdButton = styled('button')({
+  background: 'transparent',
+  border: 'none',
+  borderBottom: '1px solid rgba(0,255,65,0.1)',
+  color: '#00ff41',
+  fontFamily: 'Courier New, monospace',
+  fontSize: '0.82rem',
+  textAlign: 'left',
+  padding: '6px 0',
+  cursor: 'pointer',
+  display: 'flex',
+  alignItems: 'center',
+  gap: '6px',
+  width: '100%',
+  transition: 'all 0.12s ease',
   '&:hover': {
-    filter: 'brightness(1.03)',
-    transform: 'translateY(-2px)',
+    color: '#7fff00',
+    paddingLeft: '6px',
+    borderBottom: '1px solid rgba(0,255,65,0.5)',
+    textShadow: '0 0 6px rgba(127,255,0,0.5)',
+  },
+  '&:active': {
+    opacity: 0.5,
   },
 });
 
-const SecondaryButton = styled(Button)({
-  background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
-  color: '#ffffff',
-  fontWeight: '700',
-  fontSize: '0.85rem',
-  padding: '8px 12px',
-  borderRadius: '8px',
-  textTransform: 'none',
-  letterSpacing: '0.2px',
-  boxShadow: '0 6px 18px rgba(4, 120, 87, 0.12)',
-  transition: 'all 0.18s ease',
-  border: '1px solid rgba(0,0,0,0.06)',
-  '&:hover': {
-    filter: 'brightness(1.04)',
-    transform: 'translateY(-2px)',
-  },
+const Prompt = styled('span')({
+  color: '#00aa28',
+  userSelect: 'none',
 });
 
 function Actions() {
   const { dumpBag } = useGame();
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
-      <h2 style={{ margin: '0 0 8px 0', fontSize: '1rem', color: '#667eea' }}>Actions</h2>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '8px', fontSize: '0.85rem', width: '100%' }}>
-        <PrimaryButton variant="contained" onClick={dumpBag} size="small" fullWidth startIcon={<DeleteIcon />}>Dump</PrimaryButton>
-        <SecondaryButton variant="contained" size="small" fullWidth startIcon={<ShoppingCartIcon />}>Buy</SecondaryButton>
-        <PrimaryButton variant="contained" size="small" fullWidth startIcon={<SellIcon />}>Sell</PrimaryButton>
-        <SecondaryButton variant="contained" size="small" fullWidth startIcon={<AccountBalanceWalletIcon />}>Finances</SecondaryButton>
-        <PrimaryButton variant="contained" size="small" fullWidth startIcon={<StorefrontIcon />}>Store</PrimaryButton>
-        <SecondaryButton variant="contained" size="small" fullWidth startIcon={<AccountBalanceIcon />}>Loan</SecondaryButton>
-        <PrimaryButton variant="contained" size="small" fullWidth startIcon={<Inventory2Icon />}>Use Item</PrimaryButton>
-      </div>
-    </div>
+    <Terminal>
+      <TermHeader>C:\DRUGWARS\KC&gt; _</TermHeader>
+      <TermTitle>&gt; ACTIONS</TermTitle>
+      <CmdButton onClick={dumpBag}><Prompt>$</Prompt> dump_bag</CmdButton>
+      <CmdButton><Prompt>$</Prompt> buy_item</CmdButton>
+      <CmdButton><Prompt>$</Prompt> sell_item</CmdButton>
+      <CmdButton><Prompt>$</Prompt> finances</CmdButton>
+      <CmdButton><Prompt>$</Prompt> visit_store</CmdButton>
+      <CmdButton><Prompt>$</Prompt> pay_loan</CmdButton>
+      <CmdButton><Prompt>$</Prompt> use_item</CmdButton>
+    </Terminal>
   );
 }
 
