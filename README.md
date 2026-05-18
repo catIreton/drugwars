@@ -26,7 +26,7 @@ Play the streets of KC — buy low, sell high, dodge the heat, and cash out befo
 ```bash
 npm install
 npm start        # dev server at localhost:3000
-npm test         # 22 unit tests
+npm test         # unit tests
 npm run build    # production bundle
 npm run deploy   # push to GitHub Pages
 ```
@@ -41,16 +41,24 @@ npm run deploy   # push to GitHub Pages
 src/
   components/
     main/
-      actions/    # Terminal-style action panel (Dump, Loan, Store, Finances)
-      bag/        # "The Case" — briefcase-themed inventory panel
-      events/     # Daily Events chyron ticker
-      knockoffs/  # Drug market table with buy/sell dialog
-      status/     # Status card (cash, debt, prestige, crew, heat, weather)
-      travel/     # Google Maps travel panel + CurrentLoc image
-    GameContext.js  # Global game state, buyItem/sellItem/dumpBag
+      actions/      # Terminal-style action panel (Dump, Loan, Finances, Crew)
+      bag/          # "The Case" — briefcase-themed inventory panel
+      events/       # Daily Events chyron ticker
+      market/       # Drug market table with buy/sell dialog + price history arrows
+      status/       # Status card (cash, debt, prestige, crew, heat, weather) with flash animations
+      travel/       # Google Maps travel panel + CurrentLoc image
+    GameContext.js  # Global game state + all game actions
+    GameOver.js     # End-game results screen with stat summary
+    EncounterModal.js # Police encounter dialog
+    AchievementToast.js # Achievement unlock notification
+    Tutorial.js     # First-run onboarding overlay
   data/
-    drugs.js        # Drug definitions, location market data, price functions
-  gameState.js      # INITIAL_STATE, sessionStorage load/save
+    drugs.js        # Drug definitions, location markets, dynamic price functions
+    events.js       # KC event pool, calendar generator, price multiplier generator
+    achievements.js # Achievement definitions and unlock checks
+  utils/
+    sounds.js       # Web Audio API synthesized sound effects
+  gameState.js      # INITIAL_STATE, createInitialState, sessionStorage load/save
 public/
   images/           # KC neighborhood photos
   favicon.svg       # Split pill icon (purple/gold)
@@ -58,59 +66,83 @@ public/
 
 ---
 
-## What's Working
+## What's Working (Phase 1)
 
-- **Market** — buy and sell all 6 drugs with quantity input and validation; colored emoji badges per drug; heat level indicator with flame icons
-- **Bag** — "The Case" shows current inventory, capacity bar, dump action
-- **Status card** — cash, debt, prestige stars, crew icons, 5-tier heat badges, retro weather icon
-- **Travel** — Google Maps with color-coded neighborhood markers; clicking a pin updates the location image
-- **Events ticker** — chyron-style scrolling news strip
-- **Actions panel** — terminal-style green-text command interface; Dump is wired up
-- **Persistence** — game state survives page refresh via sessionStorage
-- **Unit tests** — 22 tests covering gameState I/O and all GameContext actions
+### Core Loop
+- 60-day game with day counter; travel advances the day
+- Game over screen at day 60 — scores cash − debt + prestige bonus; win/loss outcome
+- Bankruptcy game over if debt exceeds $30,000 with < $100 cash
+
+### Market
+- Buy and sell 6 drugs with quantity input and full validation
+- Prices randomize ±45% on every location visit
+- Wanted level penalizes prices at heat 3+ (up to 40% worse at level 5)
+- Drug stock depletes as you buy; partially restores on revisit
+- "OUT" badge and disabled buy button when stock hits zero
+- Heat level indicator with color-coded flame icons per location
+- Price history arrows (↑/↓/—) comparing current price to last visit
+- Buy dialog: free-type quantity input, MAX button (capped by stock/cash/bag space), bag space preview
+
+### Economy
+- 5% compound daily interest on debt — applied on every travel
+- Take loans (up to $5,000/loan) and pay them back via terminal commands
+- Finances modal: cash, debt, daily interest, net worth, projected debt at game end
+
+### Risk & Law
+- Buys and sells raise wanted level; natural -1 decay per day traveled
+- Police encounters at heat level 3+: pay fine / run (crew-boosted escape %) / dump bag
+
+### Events & World
+- 18 KC-flavored events (busts, spikes, DEA sweeps, fire sales) pre-generated each run
+- Chyron ticker shows today's event, upcoming events, and heat warnings
+- Weather randomizes each travel day
+
+### Crew System
+- Hire crew members ($800/member, max 8); each adds +15 bag capacity
+- Crew upkeep: $150/member/day deducted on every travel
+- Crew perks: 2 crew = 5% buy discount, 4 = 10%, 6 = 15%; escape chance boost
+
+### Bag
+- Briefcase-styled inventory showing all held drugs
+- Capacity bar (turns red at 80%+ full)
+- Per-item P&L: weighted average cost paid vs current sell price, total profit/loss badge per drug
+- `use_item` terminal command only appears when store-bought consumables are held (separate from drugs)
+
+### UI & Polish
+- Dark neon title card, terminal-green Actions panel, briefcase-styled Bag
+- Colored emoji drug badges; retro weather and heat icons in status bar
+- Police encounter modal with animated red/blue flash
+- Google Maps travel panel with color-coded KC neighborhood markers
+- Cash/debt flash animations (green on gain, red on loss)
+- Sound effects: buy/sell chimes, police siren on encounter, game over sting, achievement fanfare (Web Audio, no files)
+- Price history arrows in market table
+- Stat tracking: total profit, biggest single trade, drugs traded, times busted
+- Achievement badges: 7 milestones with toast notifications
+- Tutorial/first-run overlay for new players
+- Responsive mobile layout (stacks vertically on small screens)
 
 ---
 
-## Roadmap
+## Phase 2 — Future Development
 
-### Phase 1 — Core Game Loop
-- [ ] **Game over / win screen** — at day 60, score = cash − debt + prestige bonus; show results
-- [ ] **Day advance** — travel should consume a day and trigger market refresh
+### Persistence & Auth
+- [ ] **Firebase Auth** — sign in / sign up (infrastructure scaffolded, not wired)
+- [ ] **Cloud save** — persist game state to Firebase Realtime Database instead of sessionStorage
+- [ ] **Leaderboard** — top 10 final scores per user; visible at game over
+- [ ] **Multiple save slots** — 2–3 simultaneous runs per account
 
-### Phase 2 — Dynamic Market
-- [ ] **Price randomization on travel** — ±30–50% of base price per location visit
-- [ ] **Price spike / fire sale events** — occasional 3× or 1/3 price event, shown in ticker
-- [ ] **Out-of-stock display** — show "OUT OF STOCK" when qty reaches 0
+### Deeper Gameplay
+- [ ] **Bag upgrades** — spend cash to increase bag capacity (crew unlock or Store purchase)
+- [ ] **Rival dealers** — NPC competitors in each neighborhood driving prices and heat
+- [ ] **Time-limited deals** — flash prices lasting only 1–2 days before expiring
+- [ ] **Prestige actions** — earn prestige by pulling off big trades or evading police; prestige unlocks perks
+- [ ] **Tip-off mechanic** — snitch on a location to reduce your own heat at a cost
+- [ ] **Difficulty levels** — Easy / Medium / Hard with different interest rates and police aggressiveness
 
-### Phase 3 — Financial Mechanics
-- [ ] **Debt interest** — compound daily (10%/day); currently tracked but never grows
-- [ ] **Loan action** — borrow cash, increase debt
-- [ ] **Finances screen** — breakdown of cash, debt, interest rate, projected payoff
-- [ ] **Bankruptcy condition** — game over if debt exceeds threshold with no cash
-
-### Phase 4 — Risk & Law Enforcement
-- [ ] **Wanted level changes** — risky transactions raise heat; lying low reduces it
-- [ ] **Police encounter events** — raids at high wanted level; outcome depends on crew size
-- [ ] **Wanted level consequences** — price penalties at level 3–4; travel costs at level 5
-
-### Phase 5 — Crew System
-- [ ] **Crew recruitment** — hire via Store button; crew adds bag capacity and raid protection
-- [ ] **Crew upkeep** — daily cash cost per crew member
-
-### Phase 6 — Events & Calendar
-- [ ] **Dynamic event calendar** — randomly assign events to days 1–60 at game start
-- [ ] **Live ticker** — connect chyron to today's actual game events
-- [ ] **Weather effects** — weather changes daily and affects travel / prices
-
-### Phase 7 — Persistence & Auth
-- [ ] **Firebase Auth** — sign in / sign up (infrastructure exists, not wired)
-- [ ] **Cloud save** — persist game state to Firebase instead of sessionStorage
-- [ ] **Leaderboard** — top 10 final scores
-
-### Phase 8 — Polish
-- [ ] **Cash / debt animations** — flash green/red on change
-- [ ] **Mobile layout** — current layout is desktop-only
-- [ ] **KC flavor text** — neighborhood-specific event messages in the ticker
+### Content
+- [ ] **More KC events** — expand pool beyond 18; weight events by location and season
+- [ ] **Neighborhood flavor text** — location-specific ticker lines based on current heat / events
+- [ ] **Additional drugs** — Hash, Ecstasy, Pharmacols (legal substitute, lower risk/reward)
 
 ---
 

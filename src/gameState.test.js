@@ -14,6 +14,28 @@ describe('INITIAL_STATE', () => {
       wantedLevel: expect.any(Number),
     });
   });
+
+  test('has stats object with all tracking fields', () => {
+    expect(INITIAL_STATE.stats).toMatchObject({
+      totalProfit: 0,
+      biggestTrade: 0,
+      drugsTraded: 0,
+      timesBusted: 0,
+    });
+  });
+
+  test('has achievement fields initialized correctly', () => {
+    expect(INITIAL_STATE.unlockedAchievements).toEqual([]);
+    expect(INITIAL_STATE.pendingAchievement).toBeNull();
+  });
+
+  test('tutorialSeen starts false', () => {
+    expect(INITIAL_STATE.tutorialSeen).toBe(false);
+  });
+
+  test('priceHistory starts as empty object', () => {
+    expect(INITIAL_STATE.priceHistory).toEqual({});
+  });
 });
 
 describe('loadState', () => {

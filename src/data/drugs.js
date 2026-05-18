@@ -163,31 +163,51 @@ export const LOCATION_MARKETS = {
   },
 };
 
-/**
- * Get the market price for a specific drug in a specific location
- */
-export function getMarketPrice(drugId, location, isSelling = false) {
+// options: { dailyMultipliers, eventEffects, wantedLevel }
+export function getMarketPrice(drugId, location, isSelling = false, options = {}) {
   const drug = DRUGS.find(d => d.id === drugId);
   const market = LOCATION_MARKETS[location];
+  if (!drug || !market || !market.drugs[drugId]) return null;
 
-  if (!drug || !market || !market.drugs[drugId]) {
-    return null;
-  }
+  const { dailyMultipliers = {}, eventEffects = {}, wantedLevel = 0, crew = 0 } = options;
 
-  const multiplier = isSelling 
-    ? market.drugs[drugId].sellMultiplier 
+  const locMult = isSelling
+    ? market.drugs[drugId].sellMultiplier
     : market.drugs[drugId].buyMultiplier;
 
-  return Math.round(drug.basePrice * multiplier);
+  const dailyMult  = dailyMultipliers[drugId] ?? 1.0;
+  const eventMult  = eventEffects.drugPrice?.[drugId] ?? eventEffects.globalPrice ?? 1.0;
+
+  let price = Math.round(drug.basePrice * locMult * dailyMult * eventMult);
+
+  // Crew buy discount: crew 2+ = 5%, 4+ = 10%, 6+ = 15%
+  if (!isSelling && crew >= 2) {
+    const discount = crew >= 6 ? 0.85 : crew >= 4 ? 0.90 : 0.95;
+    price = Math.round(price * discount);
+  }
+
+  // Wanted-level price penalty: nervous vendors charge more / pay less
+  if (wantedLevel >= 5) {
+    price = isSelling ? Math.round(price * 0.6) : Math.round(price * 1.35);
+  } else if (wantedLevel >= 3) {
+    price = isSelling ? Math.round(price * 0.82) : Math.round(price * 1.18);
+  }
+
+  return Math.max(1, price);
 }
 
-/**
- * Get available quantity for a drug in a location
- */
-export function getAvailableQuantity(drugId, location) {
+// stockLevels: { [location]: { [drugId]: number } } from game state
+export function getAvailableQuantity(drugId, location, stockLevels = {}) {
   const market = LOCATION_MARKETS[location];
-  if (!market || !market.drugs[drugId]) {
-    return 0;
-  }
-  return market.drugs[drugId].qty;
+  if (!market || !market.drugs[drugId]) return 0;
+  return stockLevels[location]?.[drugId] ?? market.drugs[drugId].qty;
+}
+
+export function initialStockLevels() {
+  return Object.fromEntries(
+    Object.entries(LOCATION_MARKETS).map(([loc, market]) => [
+      loc,
+      Object.fromEntries(Object.entries(market.drugs).map(([id, d]) => [id, d.qty])),
+    ])
+  );
 }

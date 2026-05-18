@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 
 import { styled } from '@mui/material/styles';
 import LocalPoliceIcon from '@mui/icons-material/LocalPolice';
@@ -108,6 +108,19 @@ const StatValue = styled('span')({
   color: '#2d3748',
 });
 
+const flashGreen = `
+  @keyframes flashGreen {
+    0%   { background: rgba(16,185,129,0.35); }
+    100% { background: transparent; }
+  }
+`;
+const flashRed = `
+  @keyframes flashRed {
+    0%   { background: rgba(239,68,68,0.35); }
+    100% { background: transparent; }
+  }
+`;
+
 const IconRow = styled('div')({
   display: 'flex',
   gap: '8px',
@@ -142,8 +155,28 @@ const HeatRow = styled('div')({
   padding: '5px 8px',
 });
 
+function useFlash(value, up = true) {
+  const prev = useRef(value);
+  const [flash, setFlash] = useState(null);
+
+  useEffect(() => {
+    if (value !== prev.current) {
+      const increased = value > prev.current;
+      setFlash(increased === up ? 'green' : 'red');
+      const t = setTimeout(() => setFlash(null), 700);
+      prev.current = value;
+      return () => clearTimeout(t);
+    }
+    prev.current = value;
+  }, [value, up]);
+
+  return flash;
+}
+
 function Status() {
   const { game } = useGame();
+  const cashFlash = useFlash(game.cash, true);
+  const debtFlash = useFlash(game.debt, false);
 
   const getWantedColor = (level) => {
     if (level === 0) return '#10b981';
@@ -168,12 +201,19 @@ function Status() {
         <DayBadge>Day {game.day}/60</DayBadge>
       </HeaderRow>
 
+      <style>{flashGreen}{flashRed}</style>
       <FinanceRow>
-        <FinanceStat>
+        <FinanceStat style={{
+          animation: cashFlash ? `flash${cashFlash === 'green' ? 'Green' : 'Red'} 0.7s ease-out` : undefined,
+          borderRadius: '8px',
+        }}>
           <StatLabel>Cash</StatLabel>
           <StatValue style={{ color: '#059669' }}>${game.cash.toLocaleString()}</StatValue>
         </FinanceStat>
-        <FinanceStat>
+        <FinanceStat style={{
+          animation: debtFlash ? `flash${debtFlash === 'green' ? 'Green' : 'Red'} 0.7s ease-out` : undefined,
+          borderRadius: '8px',
+        }}>
           <StatLabel>Debt</StatLabel>
           <StatValue style={{ color: '#ef4444' }}>${game.debt.toLocaleString()}</StatValue>
         </FinanceStat>

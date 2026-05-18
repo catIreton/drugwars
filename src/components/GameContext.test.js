@@ -115,3 +115,233 @@ describe('dumpBag', () => {
     expect(result.current.game.day).toBe(INITIAL_STATE.day);
   });
 });
+
+describe('stat tracking', () => {
+  test('buyItem increments drugsTraded', () => {
+    const { result } = renderHook(() => useGame(), { wrapper });
+    const before = result.current.game.stats?.drugsTraded ?? 0;
+    act(() => result.current.buyItem('weed', 'Weed', 3, 1, 50));
+    expect(result.current.game.stats.drugsTraded).toBe(before + 3);
+  });
+
+  test('sellItem increments drugsTraded', () => {
+    const { result } = renderHook(() => useGame(), { wrapper });
+    const before = result.current.game.stats?.drugsTraded ?? 0;
+    act(() => result.current.sellItem('weed', 'Weed', 5, 100));
+    expect(result.current.game.stats.drugsTraded).toBe(before + 5);
+  });
+
+  test('sellItem accumulates totalProfit', () => {
+    const { result } = renderHook(() => useGame(), { wrapper });
+    act(() => result.current.sellItem('weed', 'Weed', 5, 200));
+    expect(result.current.game.stats.totalProfit).toBe(1000);
+    act(() => result.current.sellItem('speed', 'Speed', 3, 100));
+    expect(result.current.game.stats.totalProfit).toBe(1300);
+  });
+
+  test('sellItem tracks biggestTrade', () => {
+    const { result } = renderHook(() => useGame(), { wrapper });
+    act(() => result.current.sellItem('weed', 'Weed', 5, 100));   // 500
+    expect(result.current.game.stats.biggestTrade).toBe(500);
+    act(() => result.current.sellItem('speed', 'Speed', 2, 100)); // 200 — should not replace
+    expect(result.current.game.stats.biggestTrade).toBe(500);
+    act(() => result.current.sellItem('weed', 'Weed', 5, 300));   // 1500 — new max
+    expect(result.current.game.stats.biggestTrade).toBe(1500);
+  });
+
+  test('stats object exists on fresh game', () => {
+    const { result } = renderHook(() => useGame(), { wrapper });
+    expect(result.current.game.stats).toBeDefined();
+    expect(result.current.game.stats).toMatchObject({
+      totalProfit: 0,
+      biggestTrade: 0,
+      drugsTraded: 0,
+      timesBusted: 0,
+    });
+  });
+});
+
+describe('achievement system', () => {
+  test('pendingAchievement is null on fresh game', () => {
+    const { result } = renderHook(() => useGame(), { wrapper });
+    expect(result.current.game.pendingAchievement).toBeNull();
+  });
+
+  test('unlockedAchievements is empty on fresh game', () => {
+    const { result } = renderHook(() => useGame(), { wrapper });
+    expect(result.current.game.unlockedAchievements).toEqual([]);
+  });
+
+  test('dismissAchievement clears pendingAchievement', () => {
+    const { result } = renderHook(() => useGame(), { wrapper });
+    // Force a pending achievement into state
+    act(() => result.current.updateGame({ pendingAchievement: { id: 'test', label: 'Test', emoji: '⭐', description: 'x' } }));
+    expect(result.current.game.pendingAchievement).not.toBeNull();
+    act(() => result.current.dismissAchievement());
+    expect(result.current.game.pendingAchievement).toBeNull();
+  });
+
+  test('selling enough to reach $10k triggers first_10k achievement', () => {
+    const { result } = renderHook(() => useGame(), { wrapper });
+    // Weed qty=10 in initial bag, sell all at high price to push cash over 10k
+    // Initial cash = 2000; need 8001 more → sell 10 Weed @ 801 each
+    act(() => result.current.sellItem('weed', 'Weed', 10, 1000));
+    expect(result.current.game.cash).toBe(INITIAL_STATE.cash + 10000);
+    expect(result.current.game.unlockedAchievements).toContain('first_10k');
+  });
+
+  test('same achievement is not unlocked twice', () => {
+    const { result } = renderHook(() => useGame(), { wrapper });
+    act(() => result.current.sellItem('weed', 'Weed', 10, 1000));
+    act(() => result.current.sellItem('speed', 'Speed', 5, 1000));
+    const count = result.current.game.unlockedAchievements.filter(id => id === 'first_10k').length;
+    expect(count).toBe(1);
+  });
+});
+
+describe('tutorial', () => {
+  test('tutorialSeen is false on fresh game', () => {
+    const { result } = renderHook(() => useGame(), { wrapper });
+    expect(result.current.game.tutorialSeen).toBe(false);
+  });
+
+  test('markTutorialSeen sets tutorialSeen to true', () => {
+    const { result } = renderHook(() => useGame(), { wrapper });
+    act(() => result.current.markTutorialSeen());
+    expect(result.current.game.tutorialSeen).toBe(true);
+  });
+
+  test('markTutorialSeen does not affect other state', () => {
+    const { result } = renderHook(() => useGame(), { wrapper });
+    act(() => result.current.markTutorialSeen());
+    expect(result.current.game.cash).toBe(INITIAL_STATE.cash);
+    expect(result.current.game.bag).toEqual(INITIAL_STATE.bag);
+  });
+});
+
+describe('takeLoan / payLoan', () => {
+  test('takeLoan adds to cash and debt', () => {
+    const { result } = renderHook(() => useGame(), { wrapper });
+    act(() => result.current.takeLoan(1000));
+    expect(result.current.game.cash).toBe(INITIAL_STATE.cash + 1000);
+    expect(result.current.game.debt).toBe(INITIAL_STATE.debt + 1000);
+  });
+
+  test('takeLoan caps at $5000', () => {
+    const { result } = renderHook(() => useGame(), { wrapper });
+    act(() => result.current.takeLoan(9999));
+    expect(result.current.game.cash).toBe(INITIAL_STATE.cash + 5000);
+  });
+
+  test('payLoan reduces cash and debt', () => {
+    const { result } = renderHook(() => useGame(), { wrapper });
+    act(() => result.current.payLoan(500));
+    expect(result.current.game.cash).toBe(INITIAL_STATE.cash - 500);
+    expect(result.current.game.debt).toBe(INITIAL_STATE.debt - 500);
+  });
+
+  test('payLoan throws when cash is zero', () => {
+    const { result } = renderHook(() => useGame(), { wrapper });
+    act(() => result.current.updateGame({ cash: 0 }));
+    expect(() => result.current.payLoan(100)).toThrow(/not enough cash/i);
+  });
+
+  test('paying off all debt triggers clear_debt achievement', () => {
+    const { result } = renderHook(() => useGame(), { wrapper });
+    // Set cash high enough and debt to small amount
+    act(() => result.current.updateGame({ cash: 10000, debt: 500 }));
+    act(() => result.current.payLoan(500));
+    expect(result.current.game.debt).toBe(0);
+    expect(result.current.game.unlockedAchievements).toContain('clear_debt');
+  });
+});
+
+describe('hireCrew / fireCrew', () => {
+  test('hireCrew deducts cash and increases crew and bagCapacity', () => {
+    const { result } = renderHook(() => useGame(), { wrapper });
+    act(() => result.current.hireCrew(1));
+    expect(result.current.game.crew).toBe(1);
+    expect(result.current.game.cash).toBe(INITIAL_STATE.cash - 800);
+    expect(result.current.game.bagCapacity).toBe(INITIAL_STATE.bagCapacity + 15);
+  });
+
+  test('hireCrew throws when insufficient cash', () => {
+    const { result } = renderHook(() => useGame(), { wrapper });
+    act(() => result.current.updateGame({ cash: 0 }));
+    expect(() => result.current.hireCrew(1)).toThrow(/need/i);
+  });
+
+  test('hireCrew throws at max crew', () => {
+    const { result } = renderHook(() => useGame(), { wrapper });
+    act(() => result.current.updateGame({ crew: 8, cash: 99999 }));
+    expect(() => result.current.hireCrew(1)).toThrow(/max crew/i);
+  });
+
+  test('hiring 8 crew triggers full_crew achievement', () => {
+    const { result } = renderHook(() => useGame(), { wrapper });
+    act(() => result.current.updateGame({ cash: 99999, crew: 7 }));
+    act(() => result.current.hireCrew(1));
+    expect(result.current.game.crew).toBe(8);
+    expect(result.current.game.unlockedAchievements).toContain('full_crew');
+  });
+
+  test('fireCrew decreases crew and bagCapacity', () => {
+    const { result } = renderHook(() => useGame(), { wrapper });
+    act(() => result.current.updateGame({ cash: 99999, crew: 2, bagCapacity: 130 }));
+    act(() => result.current.fireCrew(1));
+    expect(result.current.game.crew).toBe(1);
+    expect(result.current.game.bagCapacity).toBe(115);
+  });
+
+  test('fireCrew throws when no crew', () => {
+    const { result } = renderHook(() => useGame(), { wrapper });
+    expect(() => result.current.fireCrew(1)).toThrow(/not enough crew/i);
+  });
+
+  test('bagCapacity does not drop below 100 when firing', () => {
+    const { result } = renderHook(() => useGame(), { wrapper });
+    act(() => result.current.updateGame({ crew: 1, bagCapacity: 100 }));
+    act(() => result.current.fireCrew(1));
+    expect(result.current.game.bagCapacity).toBe(100);
+  });
+});
+
+describe('resolveEncounter', () => {
+  test('pay choice deducts fine and reduces wantedLevel', () => {
+    const { result } = renderHook(() => useGame(), { wrapper });
+    act(() => result.current.updateGame({ pendingEncounter: { fine: 500 }, wantedLevel: 3 }));
+    act(() => result.current.resolveEncounter('pay'));
+    expect(result.current.game.cash).toBe(INITIAL_STATE.cash - 500);
+    expect(result.current.game.wantedLevel).toBe(2);
+    expect(result.current.game.pendingEncounter).toBeNull();
+  });
+
+  test('dump choice clears bag and reduces wantedLevel by 2', () => {
+    const { result } = renderHook(() => useGame(), { wrapper });
+    act(() => result.current.updateGame({ pendingEncounter: { fine: 500 }, wantedLevel: 3 }));
+    act(() => result.current.resolveEncounter('dump'));
+    expect(result.current.game.bag).toHaveLength(0);
+    expect(result.current.game.wantedLevel).toBe(1);
+    expect(result.current.game.pendingEncounter).toBeNull();
+  });
+
+  test('run with guaranteed escape clears encounter', () => {
+    const { result } = renderHook(() => useGame(), { wrapper });
+    act(() => result.current.updateGame({ pendingEncounter: { fine: 500 }, crew: 8 })); // 40%+80%=120% → always escape
+    const origMath = Math.random;
+    Math.random = () => 0.99; // just below 1.2 escape threshold → escaped
+    act(() => result.current.resolveEncounter('run'));
+    Math.random = origMath;
+    expect(result.current.game.pendingEncounter).toBeNull();
+  });
+
+  test('run with guaranteed failure increments timesBusted', () => {
+    const { result } = renderHook(() => useGame(), { wrapper });
+    act(() => result.current.updateGame({ pendingEncounter: { fine: 500 }, crew: 0, wantedLevel: 3 }));
+    const origMath = Math.random;
+    Math.random = () => 0.99; // above 40% escape chance → caught
+    act(() => result.current.resolveEncounter('run'));
+    Math.random = origMath;
+    expect(result.current.game.stats.timesBusted).toBe(1);
+  });
+});

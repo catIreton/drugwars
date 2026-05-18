@@ -1,5 +1,6 @@
 import React from 'react';
 import { styled } from '@mui/material/styles';
+import { useGame } from '../../GameContext';
 
 const ChyronBar = styled('div')({
   display: 'flex',
@@ -27,8 +28,6 @@ const Label = styled('div')({
   margin: 0,
 });
 
-const LabelText = styled('span')({});
-
 const TickerTrack = styled('div')({
   flex: 1,
   overflow: 'hidden',
@@ -45,21 +44,57 @@ const TickerInner = styled('div')({
   color: '#D4AF37',
   fontSize: '0.9rem',
   letterSpacing: '0.04em',
-  animation: 'tickerScroll 22s linear infinite',
+  animation: 'tickerScroll 28s linear infinite',
   '@keyframes tickerScroll': {
-    '0%': { transform: 'translateX(0)' },
+    '0%':   { transform: 'translateX(0)' },
     '100%': { transform: 'translateX(-100%)' },
   },
 });
 
+const SEP = '     ◆     ';
+
+function buildTickerItems(game) {
+  const items = [];
+
+  // Today's event (if any) — flagged prominently
+  if (game.todayEvent) {
+    items.push(`🔴 TODAY: ${game.todayEvent.text}`);
+  }
+
+  // Upcoming events (next 3 days)
+  for (let d = game.day + 1; d <= Math.min(game.day + 3, 60); d++) {
+    const ev = game.eventCalendar?.[d];
+    if (ev) items.push(`📅 DAY ${d}: ${ev.text}`);
+  }
+
+  // Wanted level status
+  if (game.wantedLevel >= 4) {
+    items.push('🚨 ALERT: You are HOT — narcs on your trail');
+  } else if (game.wantedLevel >= 2) {
+    items.push('⚠️ NOTICE: Heat level elevated — watch your back');
+  }
+
+  // Fallback flavor if nothing else
+  if (items.length === 0) {
+    items.push(
+      'All quiet on the KC streets today',
+      'Watch your back out there',
+      'Keep an eye on the market — prices shift daily',
+    );
+  }
+
+  return items.join(SEP);
+}
+
 function Events() {
+  const { game } = useGame();
+  const tickerText = buildTickerItems(game);
+
   return (
     <ChyronBar>
-      <Label><LabelText>Daily Events</LabelText></Label>
+      <Label>Daily Events</Label>
       <TickerTrack>
-        <TickerInner>
-          {['TODAY: Transit delays on I-35', 'EVENT: Downtown street fair 6pm', 'NOTE: New bus routes added', 'ALERT: Heat up in Westport tonight'].join('     ◆     ')}
-        </TickerInner>
+        <TickerInner key={game.day}>{tickerText}</TickerInner>
       </TickerTrack>
     </ChyronBar>
   );

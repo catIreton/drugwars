@@ -3,11 +3,15 @@ import React from 'react';
 import Status from './status/Status';
 import { Travel, CurrentLoc } from './travel/Travel';
 import Events from './events/Events';
-import Knockoffs from './knockoffs/Knockoffs';
+import Market from './market/Market';
 import Actions from './actions/Actions';
 import Bag from './bag/Bag';
+import GameOver from '../GameOver';
+import EncounterModal from '../EncounterModal';
+import AchievementToast from '../AchievementToast';
+import Tutorial from '../Tutorial';
 import { styled } from '@mui/material/styles';
-import { GameProvider } from '../GameContext';
+import { GameProvider, useGame } from '../GameContext';
 import WhathotIcon from '@mui/icons-material/Whatshot';
 import MonetizationOnIcon from '@mui/icons-material/MonetizationOn';
 
@@ -17,6 +21,11 @@ const MainDiv = styled('div')({
   height: '100vh',
   overflow: 'hidden',
   background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+  '@media (max-width: 768px)': {
+    height: 'auto',
+    minHeight: '100vh',
+    overflow: 'visible',
+  },
 });
 
 const Section = styled('div')({
@@ -27,6 +36,10 @@ const Section = styled('div')({
   gap: '12px',
   padding: '12px',
   boxSizing: 'border-box',
+  '@media (max-width: 768px)': {
+    flexDirection: 'column',
+    overflow: 'visible',
+  },
 });
 
 const CardWrapper = styled('div')({
@@ -77,8 +90,13 @@ const TitleSub = styled('span')({
 });
 
 function MainContent() {
+  const { game } = useGame();
   return (
     <MainDiv>
+      {(game.day >= 60 || game.bankrupted) && <GameOver />}
+      {game.pendingEncounter && !game.bankrupted && game.day < 60 && <EncounterModal />}
+      {!game.tutorialSeen && !game.bankrupted && game.day < 60 && <Tutorial />}
+      <AchievementToast />
       <TitleSection>
         <TitleCard>
           <WhathotIcon sx={{ fontSize: '1.6rem', color: '#ff6b35', filter: 'drop-shadow(0 0 6px #ff6b35)' }} />
@@ -105,7 +123,7 @@ function MainContent() {
       </Section>
       <Section style={{ flex: 1 }}>
         <CardWrapper style={{ flex: '5 1 0', minWidth: 0, overflow: 'auto' }}>
-          <Knockoffs />
+          <Market />
         </CardWrapper>
         <CardWrapper style={{ flex: '2 1 0', minWidth: 0, overflow: 'auto', background: '#060d06', border: '1px solid rgba(0,255,65,0.2)', boxShadow: '0 8px 32px rgba(0,0,0,0.5), inset 0 0 40px rgba(0,255,65,0.03)' }}>
           <Actions />

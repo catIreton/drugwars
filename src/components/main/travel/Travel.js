@@ -107,14 +107,14 @@ function CurrentLoc() {
 }
 
 function Travel() {
-  const { updateGame } = useGame();
+  const { travel } = useGame();
   const mapRef = useRef(null);
   const mapInstanceRef = useRef(null);
   const markersRef = useRef([]);
 
   const handleTravel = useCallback((name, src) => {
-    updateGame(prev => ({ ...prev, location: name, locationSrc: src, day: (prev.day || 0) + 1 }));
-  }, [updateGame]);
+    travel(name, src);
+  }, [travel]);
 
   const createBusStopIcon = useCallback((number, name) => {
     const bgColor = LOCATION_COLORS[name] || '#667eea';
