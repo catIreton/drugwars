@@ -38,17 +38,21 @@ const CardWrapper = styled('div')({
 
 const TitleSection = styled(Section)({
   flex: '0 0 auto',
-  padding: '20px 12px',
 });
 
 const TitleCard = styled(CardWrapper)({
-  width: '100%',
-  textAlign: 'center',
+  flex: 1,
+  height: '60px',
+  padding: '0 12px',
+  boxSizing: 'border-box',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
 });
 
 const TitleText = styled('h1')({
   margin: '0',
-  fontSize: '2.5rem',
+  fontSize: '1.8rem',
   fontFamily: 'Palatino Linotype',
   color: '#667eea',
 });
@@ -61,14 +65,14 @@ function MainContent() {
           <TitleText>Drug Wars 2026</TitleText>
         </TitleCard>
       </TitleSection>
-      <Section style={{ flex: '0 0 500px' }}>
-        <CardWrapper style={{ flex: '0 0 200px' }}>
+      <Section style={{ flex: '0 0 auto', maxHeight: '300px' }}>
+        <CardWrapper style={{ flex: '5 1 0', minWidth: 0 }}>
           <Status />
         </CardWrapper>
-        <CardWrapper style={{ flex: '1', minWidth: '250px' }}>
+        <CardWrapper style={{ flex: '2 1 0', minWidth: 0 }}>
           <CurrentLoc />
         </CardWrapper>
-        <CardWrapper style={{ flex: '0 0 500px' }}>
+        <CardWrapper style={{ flex: '5 1 0', minWidth: 0, overflow: 'hidden' }}>
           <Travel />
         </CardWrapper>
       </Section>

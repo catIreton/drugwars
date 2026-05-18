@@ -54,25 +54,6 @@ const CurrentLocContainer = styled('div')({
   justifyContent: 'center',
 });
 
-const ThirdRowContainer = styled('div')({
-  height: '120px', // Set the height of the third row of cards
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  backgroundColor: '#2C3E50', // Retro dark blue background
-  color: '#D4AF37', // Gold text for retro feel
-  fontFamily: 'Courier New, Courier, monospace', // Retro font
-  fontSize: '1rem',
-  overflow: 'hidden',
-  whiteSpace: 'nowrap',
-  animation: 'scrollText 10s linear infinite',
-
-  '@keyframes scrollText': {
-    '0%': { transform: 'translateX(100%)' },
-    '100%': { transform: 'translateX(-100%)' },
-  },
-});
-
 // Real Kansas City coordinates (lat, lng)
 const LOCATION_COORDINATES = {
   'Northtown': { lat: 39.1140, lng: -94.5797 },
@@ -86,14 +67,14 @@ const LOCATION_COORDINATES = {
 };
 
 const LOCATION_COLORS = {
-  'Northtown': '#8B4513',    // Brown - street/urban
-  'Plaza': '#D4AF37',         // Gold - high-end market
-  'Downtown': '#2C3E50',      // Dark blue - business district
-  'Westport': '#E74C3C',      // Red - party scene
-  'Brookside': '#27AE60',     // Green - local/nature
-  'Martin City': '#7D3C0C',   // Dark brown - street life
-  'Independence': '#9B59B6',  // Purple - suburban
-  'JOCO': '#3498DB',          // Light blue - wealthy suburbs
+  'Northtown': '#8B4513',
+  'Plaza': '#D4AF37',
+  'Downtown': '#2C3E50',
+  'Westport': '#E74C3C',
+  'Brookside': '#27AE60',
+  'Martin City': '#7D3C0C',
+  'Independence': '#9B59B6',
+  'JOCO': '#3498DB',
 };
 
 const LOCATIONS = [
@@ -110,14 +91,15 @@ const LOCATIONS = [
 function CurrentLoc() {
   const { game } = useGame();
   const locationColor = LOCATION_COLORS[game?.location] || '#000000';
+  const imageSrc = game?.locationSrc || LOCATIONS.find(l => l.name === game?.location)?.src;
 
   return (
     <CurrentLocContainer>
       <h1 style={{ margin: '0 0 2px 0', fontSize: '1.1rem' }}>Kansas City, MO</h1>
       <h2 style={{ margin: '0 0 10px 0', color: locationColor, fontSize: '1.3rem' }}>{game?.location}</h2>
       <img
-        style={game?.locationSrc ? { height: '150px', width: '150px', borderRadius: '8px' } : { display: 'none' }}
-        src={game?.locationSrc}
+        style={imageSrc ? { height: '150px', width: '150px', borderRadius: '8px' } : { display: 'none' }}
+        src={imageSrc}
         alt={game?.location}
       />
     </CurrentLocContainer>
@@ -134,8 +116,8 @@ function Travel() {
     updateGame(prev => ({ ...prev, location: name, locationSrc: src, day: (prev.day || 0) + 1 }));
   }, [updateGame]);
 
-  const createBusStopIcon = useCallback((number, isPrimary) => {
-    const bgColor = isPrimary ? '#667eea' : '#059669';
+  const createBusStopIcon = useCallback((number, name) => {
+    const bgColor = LOCATION_COLORS[name] || '#667eea';
     const svg = `<svg width="40" height="40" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
       <circle cx="20" cy="20" r="18" fill="${bgColor}" stroke="white" stroke-width="2"/>
       <circle cx="20" cy="20" r="16" fill="${bgColor}"/>
@@ -157,7 +139,6 @@ function Travel() {
   const initializeMap = useCallback(() => {
     if (!window.google || !window.google.maps) return;
 
-    // Kansas City center
     const kcCenter = { lat: 39.0997, lng: -94.5786 };
 
     const map = new window.google.maps.Map(mapRef.current, {
@@ -180,16 +161,14 @@ function Travel() {
     mapInstanceRef.current = map;
     markersRef.current = [];
 
-    // Create markers for each location
     LOCATIONS.forEach(({ name, src, ButtonComponent }, index) => {
       const coords = LOCATION_COORDINATES[name];
 
-      // Create custom marker with bus stop styling
       const marker = new window.google.maps.Marker({
         position: coords,
         map: map,
         title: name,
-        icon: createBusStopIcon(index + 1, ButtonComponent === 'primary'),
+        icon: createBusStopIcon(index + 1, name),
       });
 
       marker.addListener('click', () => {
@@ -228,7 +207,6 @@ function Travel() {
     }
   }, [initializeMap]);
 
-  // Render UI
   return (
     <div style={{ display: 'flex', flexDirection: 'column', width: '100%', height: '100%' }}>
       <h2 style={{ margin: '0 0 12px 0', fontSize: '1.1rem', color: '#667eea' }}>Kansas City Transit Map</h2>
@@ -259,19 +237,13 @@ function Travel() {
                   handleTravel(name, src);
                 }}
               >
-                <div style={{ width: 24, height: 24, borderRadius: 12, background: LOCATION_COLORS[name] }} />
+                <div style={{ width: 24, height: 24, borderRadius: '50%', background: LOCATION_COLORS[name], flexShrink: 0 }} />
                 <div style={{ flex: 1 }}>{name}</div>
               </div>
             ))}
           </LegendContainer>
         </MapWrapper>
       </MapContainer>
-
-      <ThirdRowContainer>
-        <div style={{ display: 'inline-block', paddingLeft: '100%' }}>
-          {['TODAY: Transit delays on I-35', 'EVENT: Downtown street fair 6pm', 'NOTE: New bus routes added'].join(' \u00A0 \u00A0 • \u00A0 \u00A0 ')}
-        </div>
-      </ThirdRowContainer>
     </div>
   );
 }

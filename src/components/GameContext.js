@@ -33,7 +33,11 @@ export function GameProvider({ children }) {
   }, [game]);
 
   function updateGame(updates) {
-    setGame(prev => ({ ...prev, ...updates }));
+    if (typeof updates === 'function') {
+      setGame(updates);
+    } else {
+      setGame(prev => ({ ...prev, ...updates }));
+    }
   }
 
   function buyItem(drugId, drugName, quantity, pricePerUnit, availableQty) {
