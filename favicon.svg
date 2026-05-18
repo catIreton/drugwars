@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <!-- Dark background -->
+  <rect width="32" height="32" rx="7" fill="#0d001a"/>
+
+  <!-- Purple left half of pill -->
+  <clipPath id="lhalf">
+    <rect x="4" y="11" width="12" height="10"/>
+  </clipPath>
+  <rect x="4" y="11" width="24" height="10" rx="5" fill="#764ba2" clip-path="url(#lhalf)"/>
+
+  <!-- Gold right half of pill -->
+  <clipPath id="rhalf">
+    <rect x="16" y="11" width="12" height="10"/>
+  </clipPath>
+  <rect x="4" y="11" width="24" height="10" rx="5" fill="#D4AF37" clip-path="url(#rhalf)"/>
+
+  <!-- Center divider -->
+  <rect x="15.5" y="11" width="1" height="10" fill="rgba(255,255,255,0.35)"/>
+</svg>
