@@ -1,8 +1,6 @@
-import React from 'react';
+import React, { useEffect, useRef, useCallback } from 'react';
 
 import { styled } from '@mui/material/styles';
-import Button from '@mui/material/Button';
-import LocalTaxiIcon from '@mui/icons-material/LocalTaxi';
 import { useGame } from '../../GameContext';
 
 import Northtown from '../../../images/northtown.jpg';
@@ -14,22 +12,38 @@ import MartinCity from '../../../images/martincity.jpg';
 import Independence from '../../../images/independence.jpg';
 import JOCO from '../../../images/joco.jpg';
 
-const PrimaryButton = styled(Button)(({ theme }) => ({
-  color: theme.palette.primary.main,
-  marginBottom: '12px',
-  marginRight: '12px',
-  background: theme.palette.accent2.main,
-}));
+const MapContainer = styled('div')({
+  position: 'relative',
+  width: '100%',
+  height: '500px',
+  border: '2px solid #667eea',
+  borderRadius: '8px',
+  overflow: 'hidden',
+});
 
-const SecondaryButton = styled(Button)(({ theme }) => ({
-  color: theme.palette.secondary.main,
-  marginBottom: '12px',
-  marginRight: '12px',
-  background: theme.palette.accent.main,
-}));
+const MapWrapper = styled('div')({
+  position: 'relative',
+  width: '100%',
+  height: '100%',
+  display: 'flex',
+  gap: '12px',
+});
 
-const TaxiIcon = styled(LocalTaxiIcon)({
-  marginRight: '5px',
+const MapElement = styled('div')({
+  flex: 1,
+  width: '100%',
+  height: '100%',
+  borderRadius: '6px',
+  overflow: 'hidden',
+});
+
+const LegendContainer = styled('div')({
+  flex: '0 0 150px',
+  overflow: 'auto',
+  backgroundColor: '#f8f9fa',
+  borderLeft: '1px solid #ddd',
+  padding: '12px',
+  fontSize: '0.85rem',
 });
 
 const CurrentLocContainer = styled('div')({
@@ -40,12 +54,36 @@ const CurrentLocContainer = styled('div')({
   justifyContent: 'center',
 });
 
-const TravelContainer = styled('div')({
-  display: 'grid',
-  gridTemplateColumns: '1fr 1fr',
-  gap: '4px',
-  flexGrow: 1,
+const ThirdRowContainer = styled('div')({
+  height: '120px', // Set the height of the third row of cards
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  backgroundColor: '#2C3E50', // Retro dark blue background
+  color: '#D4AF37', // Gold text for retro feel
+  fontFamily: 'Courier New, Courier, monospace', // Retro font
+  fontSize: '1rem',
+  overflow: 'hidden',
+  whiteSpace: 'nowrap',
+  animation: 'scrollText 10s linear infinite',
+
+  '@keyframes scrollText': {
+    '0%': { transform: 'translateX(100%)' },
+    '100%': { transform: 'translateX(-100%)' },
+  },
 });
+
+// Real Kansas City coordinates (lat, lng)
+const LOCATION_COORDINATES = {
+  'Northtown': { lat: 39.1140, lng: -94.5797 },
+  'Plaza': { lat: 39.0433, lng: -94.5910 },
+  'Downtown': { lat: 39.0997, lng: -94.5786 },
+  'Westport': { lat: 39.0553, lng: -94.5859 },
+  'Martin City': { lat: 38.9853, lng: -94.6180 },
+  'Brookside': { lat: 39.0315, lng: -94.5415 },
+  'Independence': { lat: 39.0934, lng: -94.4162 },
+  'JOCO': { lat: 38.9633, lng: -94.7230 },
+};
 
 const LOCATION_COLORS = {
   'Northtown': '#8B4513',    // Brown - street/urban
@@ -71,44 +109,169 @@ const LOCATIONS = [
 
 function CurrentLoc() {
   const { game } = useGame();
-  const locationColor = LOCATION_COLORS[game.location] || '#000000';
+  const locationColor = LOCATION_COLORS[game?.location] || '#000000';
 
   return (
     <CurrentLocContainer>
       <h1 style={{ margin: '0 0 2px 0', fontSize: '1.1rem' }}>Kansas City, MO</h1>
-      <h2 style={{ margin: '0 0 10px 0', color: locationColor, fontSize: '1.3rem' }}>{game.location}</h2>
+      <h2 style={{ margin: '0 0 10px 0', color: locationColor, fontSize: '1.3rem' }}>{game?.location}</h2>
       <img
-        style={game.locationSrc ? { height: '150px', width: '150px', borderRadius: '8px' } : { display: 'none' }}
-        src={game.locationSrc}
-        alt={game.location}
+        style={game?.locationSrc ? { height: '150px', width: '150px', borderRadius: '8px' } : { display: 'none' }}
+        src={game?.locationSrc}
+        alt={game?.location}
       />
     </CurrentLocContainer>
   );
 }
 
 function Travel() {
-  const { game, updateGame } = useGame();
+  const { updateGame } = useGame();
+  const mapRef = useRef(null);
+  const mapInstanceRef = useRef(null);
+  const markersRef = useRef([]);
 
-  function handleTravel(name, src) {
-    updateGame({ location: name, locationSrc: src, day: game.day + 1 });
-  }
+  const handleTravel = useCallback((name, src) => {
+    updateGame(prev => ({ ...prev, location: name, locationSrc: src, day: (prev.day || 0) + 1 }));
+  }, [updateGame]);
 
+  const createBusStopIcon = useCallback((number, isPrimary) => {
+    const bgColor = isPrimary ? '#667eea' : '#059669';
+    const svg = `<svg width="40" height="40" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="20" cy="20" r="18" fill="${bgColor}" stroke="white" stroke-width="2"/>
+      <circle cx="20" cy="20" r="16" fill="${bgColor}"/>
+      <text x="20" y="26" font-size="18" font-weight="bold" text-anchor="middle" fill="white">${number}</text>
+    </svg>`;
+
+    if (window.google && window.google.maps) {
+      return {
+        url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`,
+        scaledSize: new window.google.maps.Size(40, 40),
+        origin: new window.google.maps.Point(0, 0),
+        anchor: new window.google.maps.Point(20, 40),
+      };
+    }
+
+    return { url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}` };
+  }, []);
+
+  const initializeMap = useCallback(() => {
+    if (!window.google || !window.google.maps) return;
+
+    // Kansas City center
+    const kcCenter = { lat: 39.0997, lng: -94.5786 };
+
+    const map = new window.google.maps.Map(mapRef.current, {
+      zoom: 11,
+      center: kcCenter,
+      styles: [
+        {
+          featureType: 'all',
+          elementType: 'labels.text.fill',
+          stylers: [{ color: '#667eea' }],
+        },
+        {
+          featureType: 'water',
+          elementType: 'geometry.fill',
+          stylers: [{ color: '#b3d9ff' }],
+        },
+      ],
+    });
+
+    mapInstanceRef.current = map;
+    markersRef.current = [];
+
+    // Create markers for each location
+    LOCATIONS.forEach(({ name, src, ButtonComponent }, index) => {
+      const coords = LOCATION_COORDINATES[name];
+
+      // Create custom marker with bus stop styling
+      const marker = new window.google.maps.Marker({
+        position: coords,
+        map: map,
+        title: name,
+        icon: createBusStopIcon(index + 1, ButtonComponent === 'primary'),
+      });
+
+      marker.addListener('click', () => {
+        handleTravel(name, src);
+      });
+
+      markersRef.current.push(marker);
+    });
+  }, [createBusStopIcon, handleTravel]);
+
+  useEffect(() => {
+    if (window.google && window.google.maps) {
+      initializeMap();
+    } else {
+      const existingScript = document.querySelector('script[src*="maps.googleapis.com"]');
+      if (existingScript) {
+        const checkGoogle = setInterval(() => {
+          if (window.google && window.google.maps) {
+            initializeMap();
+            clearInterval(checkGoogle);
+          }
+        }, 100);
+      } else {
+        const script = document.createElement('script');
+        script.src = `https://maps.googleapis.com/maps/api/js?key=AIzaSyB3MI9WQIf_LCU2DHj5uN0IWjXwN86dHag`;
+        script.async = true;
+        script.defer = true;
+        script.onload = () => {
+          setTimeout(() => {
+            if (window.google && window.google.maps) initializeMap();
+          }, 100);
+        };
+        script.onerror = () => console.error('Failed to load Google Maps API');
+        document.head.appendChild(script);
+      }
+    }
+  }, [initializeMap]);
+
+  // Render UI
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
-      <h2 style={{ margin: '0 0 10px 0' }}>Travel To</h2>
-      <TravelContainer>
-        {LOCATIONS.map(({ name, src, ButtonComponent }) =>
-          ButtonComponent === 'primary' ? (
-            <PrimaryButton key={name} variant="contained" onClick={() => handleTravel(name, src)} fullWidth size="small" sx={{ fontSize: '0.75rem' }}>
-              <TaxiIcon sx={{ fontSize: '1rem' }} />{name}
-            </PrimaryButton>
-          ) : (
-            <SecondaryButton key={name} variant="contained" onClick={() => handleTravel(name, src)} fullWidth size="small" sx={{ fontSize: '0.75rem' }}>
-              <TaxiIcon sx={{ fontSize: '1rem' }} />{name}
-            </SecondaryButton>
-          )
-        )}
-      </TravelContainer>
+    <div style={{ display: 'flex', flexDirection: 'column', width: '100%', height: '100%' }}>
+      <h2 style={{ margin: '0 0 12px 0', fontSize: '1.1rem', color: '#667eea' }}>Kansas City Transit Map</h2>
+      <MapContainer>
+        <MapWrapper>
+          <MapElement ref={mapRef} />
+          <LegendContainer>
+            <div style={{ fontWeight: 'bold', marginBottom: '8px', color: '#667eea' }}>Bus Stops</div>
+            {LOCATIONS.map(({ name, src }, index) => (
+              <div
+                key={name}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  marginBottom: '8px',
+                  cursor: 'pointer',
+                  padding: '4px',
+                  borderRadius: '4px',
+                  backgroundColor: 'rgba(102, 126, 234, 0.05)',
+                }}
+                onClick={() => {
+                  const coords = LOCATION_COORDINATES[name];
+                  if (mapInstanceRef.current) {
+                    mapInstanceRef.current.panTo(coords);
+                    mapInstanceRef.current.setZoom(13);
+                  }
+                  handleTravel(name, src);
+                }}
+              >
+                <div style={{ width: 24, height: 24, borderRadius: 12, background: LOCATION_COLORS[name] }} />
+                <div style={{ flex: 1 }}>{name}</div>
+              </div>
+            ))}
+          </LegendContainer>
+        </MapWrapper>
+      </MapContainer>
+
+      <ThirdRowContainer>
+        <div style={{ display: 'inline-block', paddingLeft: '100%' }}>
+          {['TODAY: Transit delays on I-35', 'EVENT: Downtown street fair 6pm', 'NOTE: New bus routes added'].join(' \u00A0 \u00A0 • \u00A0 \u00A0 ')}
+        </div>
+      </ThirdRowContainer>
     </div>
   );
 }

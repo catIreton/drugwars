@@ -2,7 +2,6 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 
 import Main from '../main/Main';
-import HomePage from '../Home/home';
 
 import * as ROUTES from '../../constants/routes';
 
@@ -13,11 +12,11 @@ import theme from '../../theme';
 const App = () => (
   <ThemeProvider theme={theme}>
     <CssBaseline />
-    <Router>
+    <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <Routes>
-        <Route path={ROUTES.HOME} element={<HomePage />} />
+        <Route path={ROUTES.HOME} element={<Main />} />
         <Route path={ROUTES.MAIN} element={<Main />} />
-        <Route path="*" element={<Navigate to={ROUTES.HOME} />} />
+        <Route path="*" element={<Navigate to={ROUTES.MAIN} />} />
       </Routes>
     </Router>
   </ThemeProvider>

@@ -36,17 +36,39 @@ const CardWrapper = styled('div')({
   border: '1px solid rgba(255, 255, 255, 0.2)',
 });
 
+const TitleSection = styled(Section)({
+  flex: '0 0 auto',
+  padding: '20px 12px',
+});
+
+const TitleCard = styled(CardWrapper)({
+  width: '100%',
+  textAlign: 'center',
+});
+
+const TitleText = styled('h1')({
+  margin: '0',
+  fontSize: '2.5rem',
+  fontFamily: 'Palatino Linotype',
+  color: '#667eea',
+});
+
 function MainContent() {
   return (
     <MainDiv>
-      <Section>
+      <TitleSection>
+        <TitleCard>
+          <TitleText>Drug Wars 2026</TitleText>
+        </TitleCard>
+      </TitleSection>
+      <Section style={{ flex: '0 0 500px' }}>
         <CardWrapper style={{ flex: '0 0 200px' }}>
           <Status />
         </CardWrapper>
         <CardWrapper style={{ flex: '1', minWidth: '250px' }}>
           <CurrentLoc />
         </CardWrapper>
-        <CardWrapper style={{ flex: '1.2', minWidth: '300px' }}>
+        <CardWrapper style={{ flex: '0 0 500px' }}>
           <Travel />
         </CardWrapper>
       </Section>
@@ -59,7 +81,7 @@ function MainContent() {
         <CardWrapper style={{ flex: '1.2', minWidth: '300px', overflow: 'auto' }}>
           <Knockoffs />
         </CardWrapper>
-        <CardWrapper style={{ flex: '0.5', minWidth: '140px', overflow: 'auto' }}>
+        <CardWrapper style={{ flex: '0.3', minWidth: '225px', overflow: 'auto' }}>
           <Actions />
         </CardWrapper>
         <CardWrapper style={{ flex: '1', minWidth: '250px', overflow: 'auto' }}>
