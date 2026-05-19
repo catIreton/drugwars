@@ -204,11 +204,106 @@ public/
 
 ---
 
-## Phase 3 — Future Development
+## Phase 2 — Future Development
 
+### Persistence & Infrastructure
 - [ ] **Cloud save** — persist game state to a backend (Firebase or similar) for cross-device play
 - [ ] **Leaderboard** — top scores stored server-side; visible at game over
 - [ ] **Multiple save slots** — 2–3 simultaneous runs
+- [ ] **PWA / offline support** — service worker + manifest so the game installs on mobile and works without a signal
+- [ ] **CI pipeline** — GitHub Actions running `npm test` + build check on every push
+
+### Character Screen
+- [ ] **Dealer profile** — named character with a backstory, portrait/avatar, and origin neighborhood
+- [ ] **Equipment slots** — visual loadout showing active items (burner phone, scanner, stash house key) and bag tier
+- [ ] **Rep & history** — lifetime stats panel: total runs, best score, biggest single trade, times busted, rival takedowns
+- [ ] **Unlockable titles** — earn street titles based on playstyle (e.g. *The Pharmacist*, *Westport Ghost*, *JOCO Kingpin*)
+- [ ] **Crew roster** — named crew members with individual traits (lookout bonus, negotiate bonus, escape bonus)
+
+### Heat & Rival Escalation
+- [ ] **Surveillance buildup** — visiting the same location repeatedly raises a hidden "surveillance score"; once it peaks, an undercover sting event fires instead of a normal encounter
+- [ ] **Undercover cop events** — plain-clothes officer poses as a buyer; accepting the deal triggers an instant bust with no run/dump option
+- [ ] **Wanted poster tier** — at heat 5 you're recognized on arrival; prices tank, crew morale drops, and NPCs refuse to deal until you cool off for 3+ days
+- [ ] **Snitch in the crew** — rare event where a crew member flips; costs heat +2 and leaks your next location to police, telegraphed only by subtle ticker hints beforehand
+- [ ] **DEA task force** — separate federal heat bar that builds slowly from large transactions; at max, a raid event fires regardless of local heat level
+- [ ] **Safe house lay-low** — spend 2 days holed up (no market access) to shed 3 heat and reset surveillance score; costs daily upkeep but no travel day deducted
+- [ ] **Rival retaliation** — bulk-importing on a rival's turf triggers a retaliatory event next travel: stash robbed, crew member injured, or forced price dump
+- [ ] **Rival alliance** — two high-level rivals merge turf at day 30+; combined lockdown covers both neighborhoods until one is unseated
+- [ ] **Gang war chaos** — when two rivals clash (both level 3+ in adjacent neighborhoods), a 2-day "turf war" event creates high-risk / high-reward market conditions: prices spike but police swarm
+- [ ] **Rival takedown** — pay a bounty ($3,000–$8,000 scaling with level) to permanently reduce a rival by 2 levels; adds a prestige bonus and ticker headline
+
+### Loan Shark & Debt Consequences
+- [ ] **Tiered lenders** — three borrow sources with escalating risk: *Bank* (3% interest, $2k cap, no consequences), *Street Lender* (8% interest, $5k cap, repo risk), *Loan Shark* (15% daily interest, $10k cap, violent enforcement)
+- [ ] **Repayment countdown** — loan shark loans show a day counter; missing the deadline triggers an escalating consequence chain:
+  - Days 1–3 overdue: threatening ticker messages, crew morale penalty
+  - Days 4–7: a crew member goes missing (−1 crew, no refund)
+  - Days 8–10: stash confiscated — random bag items removed equal to 50% of loan value
+  - Day 11+: loan shark enforcer encounter — pay in full, lose the run, or fight (crew-dependent escape roll)
+- [ ] **Loan stacking penalty** — each additional active loan raises the interest rate on all loans by 2%; borrowing from 3+ sources flags you as high-risk and locks the bank option
+- [ ] **Debt consolidation** — one-time terminal command to merge all active loans at a blended rate + 5% fee; resets the repayment countdown
+- [ ] **Collateral loans** — offer a bag upgrade or crew slot as collateral for a lower rate; defaulting permanently removes the collateral item
+- [ ] **Loan forgiveness event** — rare random event (day 20–50) offers to clear one loan at 60 cents on the dollar if you can pay within 2 days; rewards players who stay liquid
+
+### Drug Demand & Market Depth
+- [ ] **Supply/demand tracking** — buying a drug depletes local supply and nudges the price up; selling floods the market and nudges it down; resets gradually over days
+- [ ] **Money laundering front** — buy into a legit business (food truck, laundromat, pawn shop) that generates slow passive income and converts dirty cash to clean; narrows the debt gap in late runs
+- [ ] **Dark web market** — alternate sell channel via burner phone; 20–40% above street price but 2-day payout delay and a small seizure risk at high heat
+- [ ] **Counterfeit goods** — rare chance a buy is fake product; sells at 30% of expected value and sours that location's relationship
+- [ ] **Drug drought** — supply event pulls one drug off the city-wide market for 3–5 days, spiking black-market prices at locations that still have stock
+- [ ] **Price memory fix** — sell price at a given location is always capped below buy price there; profit only comes from cross-location arbitrage *(partially implemented: local sell cap in `getMarketPrice`; full supply/demand economy is a deeper rewrite)*
+
+### Meta-Progression & Replayability
+- [ ] **Roguelite unlocks** — finishing a run with certain achievements permanently unlocks starting perks for future runs (e.g., *Cleared Debt* → start with lower interest rate)
+- [ ] **Multiple endings** — outcome flavor varies based on how you played: retired clean, went federal, built an empire, or died in a turf war; each ending has a unique score multiplier
+- [ ] **New Game+** — higher base heat, faster rival escalation, loan shark active from day 1
+
+### World & Environment
+- [ ] **Neighborhood gentrification** — a low-heat neighborhood slowly transforms over 20 days: prices shift, clientele changes, heat increases; irreversible once it tips
+- [ ] **Police crackdown** — random event locks a neighborhood for 2–4 days entirely; forces rerouting and can strand players already there
+- [ ] **Named rival personalities** — each rival is a character (*The Accountant*, *La Plaza Queen*, etc.) with predictable behavior patterns, a short bio, and a negotiable truce option
+
+### Items & Transport
+- [ ] **Vehicle upgrades** — beater car (default), motorcycle (+1 free travel per day), cargo van (+40 bag space, higher travel heat)
+- [ ] **Disguise kit** — single-use consumable; bypasses the wanted-poster recognition penalty at heat 5
+- [ ] **Encrypted phone** — passive item that blocks the snitch event and slows DEA heat accumulation on large transactions
+
+### Side Activities (KC flavor)
+- [ ] **Numbers running** — daily side bet on a neighborhood's price movement; low stakes but ties players emotionally to market prediction
+- [ ] **Underground fight nights** — Raytown / Martin City; bet crew members for cash, risk injury
+- [ ] **Memorabilia fence** — during Chiefs or World Cup event days, offload stolen merch for quick flat-rate cash with no drug heat
+
+### Social
+- [ ] **Async rivals** — other players' completed run stats populate as named rival dealers in your game; their turf patterns reflect how they actually played
+- [ ] **Run replay** — after game over, watch a condensed timeline of your 60 days on the travel map
+
+### KC 2026 Calendar & Real Events
+- [ ] **Game-day planner** — 60-day grid tab showing color-coded event icons so players can route strategically
+- [ ] **World Cup 2026** — KC host-city match days baked into the calendar; Downtown and Midtown see 2–3× demand and maximum heat during match days; "stadium scalping" side hustle unlocks
+- [ ] **Chiefs / Royals game days** — weekly spikes in Westport and Power & Light; championship run event chain fires if a streak milestone hits
+- [ ] **First Fridays** (Crossroads, monthly) — LSD and ecstasy demand spike, relaxed heat
+- [ ] **American Royal BBQ** (fall) — Brookside and Martin City activity boost
+- [ ] **Plaza Art Fair** (fall) — Plaza heat drops, buyers flush with cash
+- [ ] **18th & Vine Jazz Fest** (summer) — Crossroads and Midtown flavor events and sell bonuses
+- [ ] **Boulevard Brewing anniversary** — ecstasy demand jump, neighborhood flavor text
+
+### Modernization
+- [ ] **Migrate CRA → Vite** — CRA is deprecated; Vite gives sub-second HMR, faster builds, and active maintenance
+- [ ] **TypeScript** — add `tsconfig.json` and migrate files incrementally; catches type errors in game state and drug data at compile time
+- [ ] **Dependabot** — automated PRs for dependency security patches
+- [ ] **Husky + lint-staged** — run ESLint and tests on staged files before every commit
+- [ ] **Bundle analysis** — `vite-bundle-visualizer` to audit what's eating bundle size after the CRA migration
+
+### Monitoring & Observability
+- [ ] **Sentry** — capture runtime errors and unhandled rejections from real players without needing repro steps
+- [ ] **Web Vitals** — report LCP, CLS, FID; flag regressions before deploy
+- [ ] **Privacy-friendly analytics** — Plausible or Fathom to track active sessions and game-over funnels without GDPR baggage
+
+### Polish & Quality
+- [ ] **Error boundaries** — catch render crashes gracefully instead of white-screening
+- [ ] **Code splitting** — lazy-load the game view to shrink the initial bundle
+- [ ] **E2E tests** — Playwright smoke test covering the core buy → travel → sell loop
+- [ ] **Accessibility** — keyboard navigation and ARIA labels on the market table and dialogs
+- [ ] **Mobile gestures** — swipe between tabs on small screens; haptic feedback on buy/sell confirmation
 
 ---
 

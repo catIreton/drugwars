@@ -362,6 +362,14 @@ export function getMarketPrice(drugId, location, isSelling = false, options = {}
     price = Math.round(price * (GRADE_MULT[grade] ?? 1.0));
   }
 
+  // Prevent instant arbitrage: sell price at same location must be < buy price.
+  // Many locations have sellMultiplier > buyMultiplier by design (good demand + good supply),
+  // which would let players buy and immediately sell for profit without traveling.
+  if (isSelling) {
+    const localBuyPrice = getMarketPrice(drugId, location, false, options);
+    price = Math.min(price, localBuyPrice - 1);
+  }
+
   return Math.max(1, price);
 }
 
