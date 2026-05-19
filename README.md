@@ -275,6 +275,14 @@ public/
 - [ ] **Husky + lint-staged** — run ESLint and tests on staged files before every commit
 - [ ] **Bundle analysis** — `vite-bundle-visualizer` to audit what's eating bundle size after the CRA migration
 
+### Crew Betrayal & Internal Threats
+- [ ] **Skimming** — crew members quietly skim cash on each travel day; amount scales with crew size and how long they've been hired; detected randomly or via a scanner item
+- [ ] **Stolen stash** — a crew member lifts product from the bag overnight; you notice on next travel when inventory is short; fired crew keep what they took
+- [ ] **Loyalty meter** — each crew member has a hidden loyalty score that degrades if you underpay, skip upkeep, or get busted repeatedly; low loyalty raises skimming and theft odds
+- [ ] **Crew mutiny** — at loyalty zero the whole crew quits mid-run, taking a flat cut of your cash and leaving you solo; telegraphed by escalating ticker warnings
+- [ ] **Double agent** — rare event: one crew member is actually working for a rival; their actions quietly boost the rival's level at your current location each day they're employed
+- [ ] **Buyout offer** — a rival sends a cash offer to poach one of your crew; you can match it (cost) or lose the member; refusing at low loyalty accelerates the mutiny clock
+
 ### Polish & Quality
 - [ ] **Error boundaries** — catch render crashes gracefully instead of white-screening
 - [ ] **Code splitting** — lazy-load the game view to shrink the initial bundle
@@ -303,6 +311,13 @@ public/
 ### Social
 - [ ] **Async rivals** — other players' completed run stats populate as named rival dealers in your game; their turf patterns reflect how they actually played
 - [ ] **Run replay** — after game over, watch a condensed timeline of your 60 days on the travel map
+
+### Steam Release
+- [ ] **Electron wrapper** — package the React app in Electron for a native desktop build suitable for Steam distribution
+- [ ] **Steam SDK integration** — Steamworks SDK for achievements, cloud saves, and leaderboard hooks tied to the existing prestige/score system
+- [ ] **Steam achievements** — map the 7 in-game achievement badges to Steam achievement IDs; add Steam-exclusive ones (e.g., *60-day Iron Run*, *Takedown Artist*)
+- [ ] **Installer & store assets** — build pipeline producing a signed Windows/Mac installer; capsule images, screenshots, and store description copy
+- [ ] **Controller support** — gamepad navigation for the market table and dialogs so the game is playable on Steam Deck
 
 ### Monitoring & Observability
 - [ ] **Sentry** — capture runtime errors and unhandled rejections from real players without needing repro steps
