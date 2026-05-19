@@ -1,7 +1,7 @@
 {
   "files": {
     "main.css": "/drugwars/static/css/main.85ec72cf.css",
-    "main.js": "/drugwars/static/js/main.2f4cf88d.js",
+    "main.js": "/drugwars/static/js/main.cb997e90.js",
     "static/media/westport.jfif": "/drugwars/static/media/westport.acd023b78f594faa7b4e.jfif",
     "static/media/plaza.jpg": "/drugwars/static/media/plaza.8499f950a8c7e863a78d.jpg",
     "static/media/independence.jpg": "/drugwars/static/media/independence.505f1cfa4f30e488c967.jpg",
@@ -12,10 +12,10 @@
     "static/media/martincity.jpg": "/drugwars/static/media/martincity.81846608d0df3c9bc348.jpg",
     "index.html": "/drugwars/index.html",
     "main.85ec72cf.css.map": "/drugwars/static/css/main.85ec72cf.css.map",
-    "main.2f4cf88d.js.map": "/drugwars/static/js/main.2f4cf88d.js.map"
+    "main.cb997e90.js.map": "/drugwars/static/js/main.cb997e90.js.map"
   },
   "entrypoints": [
     "static/css/main.85ec72cf.css",
-    "static/js/main.2f4cf88d.js"
+    "static/js/main.cb997e90.js"
   ]
 }
