@@ -3,7 +3,7 @@ import { renderHook, act } from '@testing-library/react';
 import { GameProvider, useGame } from './GameContext';
 import { INITIAL_STATE } from '../gameState';
 
-beforeEach(() => sessionStorage.clear());
+beforeEach(() => localStorage.clear());
 
 const wrapper = ({ children }) => <GameProvider>{children}</GameProvider>;
 
@@ -303,6 +303,97 @@ describe('hireCrew / fireCrew', () => {
     act(() => result.current.updateGame({ crew: 1, bagCapacity: 100 }));
     act(() => result.current.fireCrew(1));
     expect(result.current.game.bagCapacity).toBe(100);
+  });
+});
+
+describe('upgradeBag', () => {
+  test('deducts $2000 and increases bagCapacity by 25', () => {
+    const { result } = renderHook(() => useGame(), { wrapper });
+    act(() => result.current.updateGame({ cash: 5000 }));
+    act(() => result.current.upgradeBag());
+    expect(result.current.game.cash).toBe(3000);
+    expect(result.current.game.bagCapacity).toBe(INITIAL_STATE.bagCapacity + 25);
+    expect(result.current.game.bagUpgradesUsed).toBe(1);
+  });
+
+  test('throws when insufficient cash', () => {
+    const { result } = renderHook(() => useGame(), { wrapper });
+    act(() => result.current.updateGame({ cash: 0 }));
+    expect(() => result.current.upgradeBag()).toThrow(/need/i);
+  });
+
+  test('throws when max upgrades reached', () => {
+    const { result } = renderHook(() => useGame(), { wrapper });
+    act(() => result.current.updateGame({ cash: 99999, bagUpgradesUsed: 4 }));
+    expect(() => result.current.upgradeBag()).toThrow(/maximum/i);
+  });
+});
+
+describe('tipOff', () => {
+  test('deducts cost, reduces wanted level, and sets cooldown', () => {
+    const { result } = renderHook(() => useGame(), { wrapper });
+    act(() => result.current.updateGame({ cash: 5000, wantedLevel: 3, tipOffCooldown: 0 }));
+    act(() => result.current.tipOff());
+    expect(result.current.game.cash).toBe(4500);
+    expect(result.current.game.wantedLevel).toBe(1);
+    expect(result.current.game.tipOffCooldown).toBe(5);
+  });
+
+  test('throws when on cooldown', () => {
+    const { result } = renderHook(() => useGame(), { wrapper });
+    act(() => result.current.updateGame({ tipOffCooldown: 3 }));
+    expect(() => result.current.tipOff()).toThrow(/cooldown/i);
+  });
+
+  test('throws when insufficient cash', () => {
+    const { result } = renderHook(() => useGame(), { wrapper });
+    act(() => result.current.updateGame({ cash: 100, tipOffCooldown: 0 }));
+    expect(() => result.current.tipOff()).toThrow(/need/i);
+  });
+});
+
+describe('setDifficulty', () => {
+  test('changes difficulty on day 1', () => {
+    const { result } = renderHook(() => useGame(), { wrapper });
+    act(() => result.current.setDifficulty('hard'));
+    expect(result.current.game.difficulty).toBe('hard');
+  });
+
+  test('throws when tried after day 1', () => {
+    const { result } = renderHook(() => useGame(), { wrapper });
+    act(() => result.current.updateGame({ day: 5 }));
+    expect(() => result.current.setDifficulty('easy')).toThrow(/only.*before/i);
+  });
+
+  test('throws for unknown difficulty', () => {
+    const { result } = renderHook(() => useGame(), { wrapper });
+    expect(() => result.current.setDifficulty('insane')).toThrow(/unknown/i);
+  });
+});
+
+describe('prestige accumulation', () => {
+  test('selling $2000+ worth earns +2 prestige', () => {
+    const { result } = renderHook(() => useGame(), { wrapper });
+    const before = result.current.game.prestige;
+    act(() => result.current.sellItem('weed', 'Weed', 10, 210)); // 2100 >= 2000
+    expect(result.current.game.prestige).toBe(before + 2);
+  });
+
+  test('selling under $2000 does not earn prestige', () => {
+    const { result } = renderHook(() => useGame(), { wrapper });
+    const before = result.current.game.prestige;
+    act(() => result.current.sellItem('weed', 'Weed', 5, 100)); // 500 < 2000
+    expect(result.current.game.prestige).toBe(before);
+  });
+
+  test('escaping encounter earns +5 prestige', () => {
+    const { result } = renderHook(() => useGame(), { wrapper });
+    act(() => result.current.updateGame({ pendingEncounter: { fine: 500 }, crew: 8, prestige: 0 }));
+    const origMath = Math.random;
+    Math.random = () => 0.01; // well below 1.2 escape threshold → always escaped
+    act(() => result.current.resolveEncounter('run'));
+    Math.random = origMath;
+    expect(result.current.game.prestige).toBe(5);
   });
 });
 

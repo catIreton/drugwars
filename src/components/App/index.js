@@ -12,7 +12,7 @@ import theme from '../../theme';
 const App = () => (
   <ThemeProvider theme={theme}>
     <CssBaseline />
-    <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+    <Router basename="/drugwars" future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <Routes>
         <Route path={ROUTES.HOME} element={<Main />} />
         <Route path={ROUTES.MAIN} element={<Main />} />

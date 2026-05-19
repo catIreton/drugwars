@@ -15,6 +15,21 @@ import AirIcon from '@mui/icons-material/Air';
 import NightsStayIcon from '@mui/icons-material/NightsStay';
 import { useGame } from '../../GameContext';
 
+const DIFF_COLORS = { easy: '#10b981', normal: '#667eea', hard: '#ef4444' };
+
+const DiffBadge = styled('span')(({ diff }) => ({
+  fontSize: '0.7rem',
+  fontWeight: 700,
+  color: DIFF_COLORS[diff] ?? '#667eea',
+  background: `${DIFF_COLORS[diff] ?? '#667eea'}18`,
+  border: `1px solid ${DIFF_COLORS[diff] ?? '#667eea'}55`,
+  padding: '2px 8px',
+  borderRadius: '12px',
+  letterSpacing: '0.08em',
+  fontFamily: 'Courier New, monospace',
+  whiteSpace: 'nowrap',
+}));
+
 const WEATHER_MAP = {
   sunny:   { Icon: WbSunnyIcon,    color: '#f59e0b' },
   cloudy:  { Icon: WbCloudyIcon,   color: '#94a3b8' },
@@ -198,7 +213,10 @@ function Status() {
           {game.weather}
         </WeatherWidget>
         <Title>Kansas City</Title>
-        <DayBadge>Day {game.day}/60</DayBadge>
+        <div style={{ display: 'flex', gap: '5px', alignItems: 'center' }}>
+          <DiffBadge diff={game.difficulty ?? 'normal'}>{(game.difficulty ?? 'normal').toUpperCase()}</DiffBadge>
+          <DayBadge>Day {game.day}/60</DayBadge>
+        </div>
       </HeaderRow>
 
       <style>{flashGreen}{flashRed}</style>

@@ -3,19 +3,13 @@ import { createTheme } from '@mui/material/styles';
 const theme = createTheme({
   palette: {
     primary: {
-      main: '#4dd0e1',
+      main: '#667eea',
     },
     secondary: {
-      main: '#ffecb3',
-    },
-    accent: {
-      main: '#ff80ab',
-    },
-    accent2: {
-      main: '#0097a7',
+      main: '#D4AF37',
     },
     background: {
-      default: 'rgba(0, 151, 167, 0.95)',
+      default: '#0d001a',
     },
   },
   components: {

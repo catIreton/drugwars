@@ -2,47 +2,55 @@ import { generateEventCalendar } from './data/events';
 import { initialStockLevels } from './data/drugs';
 
 export const SESSION_KEY = 'drugwars_game';
+export const SCORES_KEY  = 'drugwars_scores';
 
-// Static shape used by tests and as a base for createInitialState
 export const INITIAL_STATE = {
   day: 1,
   cash: 2000,
   debt: 5000,
-  prestige: 1,
+  prestige: 0,
   crew: 0,
   wantedLevel: 0,
   weather: 'Sunny',
   location: 'Downtown',
   locationSrc: null,
+  difficulty: 'normal',         // 'easy' | 'normal' | 'hard'
   bag: [
-    { id: 'weed',  name: 'Weed',  qty: 10, avgCost: 200 },
-    { id: 'speed', name: 'Speed', qty: 5,  avgCost: 300 },
+    { id: 'weed',  name: 'Weed',  qty: 10, avgCost: 200, grade: 'standard', bagKey: 'weed_standard'  },
+    { id: 'speed', name: 'Speed', qty: 5,  avgCost: 300, grade: 'standard', bagKey: 'speed_standard' },
   ],
   bagCapacity: 100,
-  priceMultipliers: {},   // { [location]: { [drugId]: multiplier } }
-  eventCalendar: {},      // { [day]: event }
-  activeEventEffects: {}, // effects active today
+  bagUpgradesUsed: 0,
+  priceMultipliers: {},
+  eventCalendar: {},
+  activeEventEffects: {},
   todayEvent: null,
-  stockLevels: {},        // { [location]: { [drugId]: qty } }
+  stockLevels: {},
   bankrupted: false,
-  pendingEncounter: null, // { fine } | null
-  items: [],             // consumables bought from the store: [{ id, name, emoji }]
+  pendingEncounter: null,
+  items: [],
+  scannerActive: false,
+  bulkImportCooldown: 0,
   stats: {
     totalProfit: 0,
     biggestTrade: 0,
     drugsTraded: 0,
     timesBusted: 0,
   },
-  priceHistory: {},        // { [location]: { [drugId]: lastPrice } }
+  priceHistory: {},
   unlockedAchievements: [],
   pendingAchievement: null,
   tutorialSeen: false,
+  rivals: {},               // { [location]: { level: 0–4, lastVisitDay: 0 } }
+  flashDeals: {},           // { [location]: { [drugId]: { type, mult, expiresDay } } }
+  tipOffCooldown: 0,
+  locationHeatBonus: {},    // { [location]: { amount, expiresDay } }
 };
 
-// Called at game start and on reset — generates fresh dynamic state
-export function createInitialState() {
+export function createInitialState(difficulty = 'normal') {
   return {
     ...INITIAL_STATE,
+    difficulty,
     eventCalendar: generateEventCalendar(60),
     stockLevels: initialStockLevels(),
   };
@@ -50,7 +58,7 @@ export function createInitialState() {
 
 export function loadState() {
   try {
-    const raw = sessionStorage.getItem(SESSION_KEY);
+    const raw = localStorage.getItem(SESSION_KEY);
     if (!raw) return INITIAL_STATE;
     return JSON.parse(raw);
   } catch (error) {
@@ -61,8 +69,29 @@ export function loadState() {
 
 export function saveState(state) {
   try {
-    sessionStorage.setItem(SESSION_KEY, JSON.stringify(state));
+    localStorage.setItem(SESSION_KEY, JSON.stringify(state));
   } catch (error) {
     console.error('Failed to save game state to storage:', error);
+  }
+}
+
+export function loadHighScores() {
+  try {
+    const raw = localStorage.getItem(SCORES_KEY);
+    if (!raw) return [];
+    return JSON.parse(raw);
+  } catch {
+    return [];
+  }
+}
+
+export function saveHighScore(entry) {
+  try {
+    const scores = loadHighScores();
+    scores.push(entry);
+    scores.sort((a, b) => b.score - a.score);
+    localStorage.setItem(SCORES_KEY, JSON.stringify(scores.slice(0, 5)));
+  } catch (e) {
+    console.error('Failed to save high score:', e);
   }
 }

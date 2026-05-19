@@ -15,13 +15,12 @@ import TextField from '@mui/material/TextField';
 import Button from '@mui/material/Button';
 import Tooltip from '@mui/material/Tooltip';
 import ShoppingBagIcon from '@mui/icons-material/ShoppingBag';
-import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
 import WhatshotIcon from '@mui/icons-material/Whatshot';
 import WhatshotOutlinedIcon from '@mui/icons-material/WhatshotOutlined';
 
-import { DRUGS, getMarketPrice, getAvailableQuantity, LOCATION_MARKETS } from '../../../data/drugs';
+import { DRUGS, getMarketPrice, getAvailableQuantity, LOCATION_MARKETS, getLocationGrade } from '../../../data/drugs';
 import { useGame } from '../../GameContext';
-import { playBuy, playSell } from '../../../utils/sounds';
+import { playBuy } from '../../../utils/sounds';
 
 const HEAT_MAP = {
   'Very Hot': { color: '#ef4444', level: 4 },
@@ -56,6 +55,22 @@ const HeatBadge = styled('div')(({ heatcolor }) => ({
   whiteSpace: 'nowrap',
 }));
 
+const RivalBadge = styled('div')(({ rivalcolor }) => ({
+  display: 'inline-flex',
+  alignItems: 'center',
+  background: `${rivalcolor}18`,
+  border: `1px solid ${rivalcolor}55`,
+  borderRadius: '6px',
+  padding: '3px 8px',
+  color: rivalcolor,
+  fontFamily: 'Courier New, monospace',
+  fontSize: '0.72rem',
+  fontWeight: 700,
+  letterSpacing: '0.06em',
+  textTransform: 'uppercase',
+  whiteSpace: 'nowrap',
+}));
+
 const MarketContainer = styled('div')({
   flex: 1,
   overflow: 'auto',
@@ -66,10 +81,6 @@ const MarketContainer = styled('div')({
 const ActionCell = styled(TableCell)({
   textAlign: 'right',
   padding: '3px 8px',
-  display: 'flex',
-  gap: '4px',
-  justifyContent: 'flex-end',
-  alignItems: 'center',
 });
 
 const ActionIconButton = styled(IconButton)({
@@ -106,19 +117,6 @@ const dialogPaper = {
   borderRadius: '14px',
   boxShadow: '0 0 40px rgba(120,0,200,0.35), 0 20px 60px rgba(0,0,0,0.8)',
 };
-
-const ActionChip = styled('span')(({ isbuy }) => ({
-  fontFamily: 'Courier New, monospace',
-  fontSize: '0.7rem',
-  fontWeight: 700,
-  letterSpacing: '0.15em',
-  textTransform: 'uppercase',
-  padding: '2px 10px',
-  borderRadius: '4px',
-  background: isbuy === 'true' ? 'rgba(102,126,234,0.15)' : 'rgba(16,185,129,0.15)',
-  border: `1px solid ${isbuy === 'true' ? 'rgba(102,126,234,0.5)' : 'rgba(16,185,129,0.5)'}`,
-  color: isbuy === 'true' ? '#a5b4fc' : '#6ee7b7',
-}));
 
 const StatGrid = styled('div')({
   display: 'flex',
@@ -170,7 +168,6 @@ const darkTextField = {
   '& .MuiInputLabel-root.Mui-focused': { color: '#c084fc' },
   '& .MuiInputBase-input': {
     textAlign: 'center',
-    // hide native number spinners
     '&::-webkit-outer-spin-button, &::-webkit-inner-spin-button': { WebkitAppearance: 'none', margin: 0 },
     '&[type=number]': { MozAppearance: 'textfield' },
   },
@@ -184,30 +181,48 @@ const StyledTable = styled(Table)({
   },
 });
 
-const StyledTableRow = styled(TableRow)(({ theme }) => ({
+const StyledTableRow = styled(TableRow)({
   '&:hover': {
     backgroundColor: 'rgba(102, 126, 234, 0.05)',
   },
-}));
+});
 
 const PriceCell = styled(TableCell)({
   textAlign: 'right',
   minWidth: '100px',
 });
 
+const GRADE_COLORS = { high: '#fbbf24', standard: '#6b7280', low: '#f87171' };
+const GRADE_LABELS = { high: 'HI', standard: '—', low: 'LO' };
+
 function PriceArrow({ drugId, currentPrice, priceHistory, location }) {
   const last = priceHistory?.[location]?.[drugId];
-  if (!last || last === currentPrice) return <span style={{ color: '#6b7280', fontSize: '0.75rem' }}>—</span>;
-  if (currentPrice > last) return <span style={{ color: '#10b981', fontSize: '0.8rem', fontWeight: 700 }}>↑</span>;
-  return <span style={{ color: '#ef4444', fontSize: '0.8rem', fontWeight: 700 }}>↓</span>;
+  if (!last || last === currentPrice) {
+    return (
+      <Tooltip title="No previous price for this location" arrow placement="top">
+        <span style={{ color: '#6b7280', fontSize: '0.75rem', cursor: 'default' }}>—</span>
+      </Tooltip>
+    );
+  }
+  const delta = currentPrice - last;
+  const up    = delta > 0;
+  return (
+    <Tooltip title={`Was $${last.toLocaleString()} last visit (${up ? '+' : ''}$${delta.toLocaleString()})`} arrow placement="top">
+      <span style={{ color: up ? '#f97316' : '#10b981', fontSize: '0.75rem', fontWeight: 700, cursor: 'default', whiteSpace: 'nowrap' }}>
+        {up ? '▲' : '▼'} {up ? '+' : ''}${Math.abs(delta).toLocaleString()}
+      </span>
+    </Tooltip>
+  );
 }
 
 function Market() {
-  const { game, buyItem, sellItem } = useGame();
+  const { game, buyItem, negotiate } = useGame();
   const [selectedDrug, setSelectedDrug] = useState(null);
   const [quantity, setQuantity] = useState(1);
-  const [action, setAction] = useState('buy'); // 'buy' or 'sell'
   const [error, setError] = useState(null);
+  const [negotiatedPrice,   setNegotiatedPrice]   = useState(null);
+  const [haggledThisDialog, setHaggledThisDialog] = useState(false);
+  const [haggleResult,      setHaggleResult]      = useState(null);
 
   if (!game.location) {
     return (
@@ -228,40 +243,56 @@ function Market() {
     );
   }
 
+  const locationFlashDeals = game.flashDeals?.[game.location] ?? {};
+  const rivalLevel = game.rivals?.[game.location]?.level ?? 0;
   const priceOptions = {
     dailyMultipliers: game.priceMultipliers?.[game.location] ?? {},
     eventEffects: game.activeEventEffects ?? {},
     wantedLevel: game.wantedLevel,
     crew: game.crew,
+    prestige: game.prestige ?? 0,
+    rivalLevel,
+    flashDeals: locationFlashDeals,
   };
 
-  const handleRowClick = (drug, actionType) => {
+  const handleRowClick = (drug) => {
     setSelectedDrug(drug);
-    setAction(actionType);
     setQuantity(1);
     setError(null);
+    setNegotiatedPrice(null);
+    setHaggledThisDialog(false);
+    setHaggleResult(null);
   };
 
   const handleClose = () => {
     setSelectedDrug(null);
     setError(null);
+    setNegotiatedPrice(null);
+    setHaggledThisDialog(false);
+    setHaggleResult(null);
+  };
+
+  const handleHaggle = (basePrice) => {
+    if (haggledThisDialog) return;
+    const result = negotiate(basePrice, true);
+    setNegotiatedPrice(result.newPrice);
+    setHaggledThisDialog(true);
+    setHaggleResult({ success: result.success, pct: result.pct });
   };
 
   const handleConfirm = () => {
     const numQty = Math.max(1, parseInt(quantity) || 1);
     if (!selectedDrug || numQty < 1) return;
 
-    const price = getMarketPrice(selectedDrug.id, game.location, action === 'sell', priceOptions);
+    const grade        = getLocationGrade(selectedDrug.id, game.location, game.day);
+    const baseOptions  = { ...priceOptions, grade };
+    const basePrice    = getMarketPrice(selectedDrug.id, game.location, false, baseOptions);
+    const price        = negotiatedPrice ?? basePrice;
     const availableQty = getAvailableQuantity(selectedDrug.id, game.location, game.stockLevels);
 
     try {
-      if (action === 'buy') {
-        buyItem(selectedDrug.id, selectedDrug.name, numQty, price, availableQty);
-        playBuy();
-      } else {
-        sellItem(selectedDrug.id, selectedDrug.name, numQty, price);
-        playSell();
-      }
+      buyItem(selectedDrug.id, selectedDrug.name, numQty, price, availableQty, grade);
+      playBuy();
       handleClose();
     } catch (err) {
       setError(err.message);
@@ -272,35 +303,46 @@ function Market() {
     <MarketContainer>
       <MarketHeader>
         <h2 style={{ margin: 0, color: '#667eea', fontSize: '1.1rem' }}>Market — {game.location}</h2>
-        {(() => {
-          const heat = HEAT_MAP[marketLocation.heatLevel] ?? HEAT_MAP['Moderate'];
-          return (
-            <HeatBadge heatcolor={heat.color}>
-              {[...Array(4)].map((_, i) =>
-                i < heat.level
-                  ? <WhatshotIcon key={i} sx={{ fontSize: '0.95rem' }} />
-                  : <WhatshotOutlinedIcon key={i} sx={{ fontSize: '0.95rem', color: '#d1d5db' }} />
-              )}
-              &nbsp;{marketLocation.heatLevel}
-            </HeatBadge>
-          );
-        })()}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          {rivalLevel > 0 && (
+            <RivalBadge rivalcolor={rivalLevel >= 2 ? '#ef4444' : '#f97316'}>
+              👊 {rivalLevel === 1 ? 'Rival' : `${rivalLevel} Rivals`}
+            </RivalBadge>
+          )}
+          {(() => {
+            const heat = HEAT_MAP[marketLocation.heatLevel] ?? HEAT_MAP['Moderate'];
+            return (
+              <HeatBadge heatcolor={heat.color}>
+                {[...Array(4)].map((_, i) =>
+                  i < heat.level
+                    ? <WhatshotIcon key={i} sx={{ fontSize: '0.95rem' }} />
+                    : <WhatshotOutlinedIcon key={i} sx={{ fontSize: '0.95rem', color: '#d1d5db' }} />
+                )}
+                &nbsp;{marketLocation.heatLevel}
+              </HeatBadge>
+            );
+          })()}
+        </div>
       </MarketHeader>
+
       <StyledTable size="small">
         <TableHead>
           <TableRow>
             <TableCell style={{ width: '180px', padding: '3px 8px' }}>Drug</TableCell>
             <TableCell align="right">Buy Price</TableCell>
-            <TableCell align="center" style={{ width: '32px', padding: '3px 4px' }}></TableCell>
-            <TableCell align="right">Sell Price</TableCell>
+            <TableCell align="center" style={{ padding: '3px 4px' }}>
+              <Tooltip title="Change vs. last visit to this location" arrow placement="top">
+                <span style={{ fontSize: '0.68rem', color: '#6b7280', cursor: 'default' }}>Δ</span>
+              </Tooltip>
+            </TableCell>
             <TableCell align="right">Available</TableCell>
-            <TableCell align="right">Actions</TableCell>
+            <TableCell align="right"></TableCell>
           </TableRow>
         </TableHead>
         <TableBody>
           {DRUGS.map(drug => {
+            const grade     = getLocationGrade(drug.id, game.location, game.day);
             const buyPrice  = getMarketPrice(drug.id, game.location, false, priceOptions);
-            const sellPrice = getMarketPrice(drug.id, game.location, true,  priceOptions);
             const available = getAvailableQuantity(drug.id, game.location, game.stockLevels);
             const outOfStock = available === 0;
 
@@ -314,11 +356,23 @@ function Market() {
                     </span>
                   </Tooltip>
                 </DrugNameCell>
-                <PriceCell>${buyPrice}</PriceCell>
+                <PriceCell>
+                  {locationFlashDeals[drug.id]?.type === 'buy' && <span style={{ color: '#fbbf24', fontSize: '0.75rem' }}>⚡</span>}
+                  ${buyPrice}
+                  {' '}
+                  <Tooltip
+                    title={grade === 'high' ? 'High quality — sell price +28%' : grade === 'low' ? 'Low quality — sell price −18%' : 'Standard quality'}
+                    arrow
+                    placement="top"
+                  >
+                    <span style={{ fontSize: '0.68rem', fontWeight: 700, color: GRADE_COLORS[grade], opacity: 0.85, cursor: 'default' }}>
+                      {GRADE_LABELS[grade]}
+                    </span>
+                  </Tooltip>
+                </PriceCell>
                 <TableCell align="center" style={{ padding: '3px 4px' }}>
                   <PriceArrow drugId={drug.id} currentPrice={buyPrice} priceHistory={game.priceHistory} location={game.location} />
                 </TableCell>
-                <PriceCell>${sellPrice}</PriceCell>
                 <TableCell align="right">
                   {outOfStock
                     ? <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#ef4444', letterSpacing: '0.05em' }}>OUT</span>
@@ -327,16 +381,11 @@ function Market() {
                 <ActionCell>
                   {!outOfStock && (
                     <Tooltip title="Buy" arrow>
-                      <ActionIconButton size="small" onClick={() => handleRowClick(drug, 'buy')} sx={{ color: '#667eea' }}>
+                      <ActionIconButton size="small" onClick={() => handleRowClick(drug)} sx={{ color: '#667eea' }}>
                         <ShoppingBagIcon fontSize="small" />
                       </ActionIconButton>
                     </Tooltip>
                   )}
-                  <Tooltip title="Sell" arrow>
-                    <ActionIconButton size="small" onClick={() => handleRowClick(drug, 'sell')} sx={{ color: '#10b981' }}>
-                      <AttachMoneyIcon fontSize="small" />
-                    </ActionIconButton>
-                  </Tooltip>
                 </ActionCell>
               </StyledTableRow>
             );
@@ -344,24 +393,23 @@ function Market() {
         </TableBody>
       </StyledTable>
 
-      {/* Buy/Sell Dialog */}
+      {/* Buy Dialog */}
       <Dialog open={!!selectedDrug} onClose={handleClose} maxWidth="xs" fullWidth PaperProps={{ sx: dialogPaper }}>
         {selectedDrug && (() => {
-          const isBuy = action === 'buy';
-          const drug = selectedDrug;
-          const unitPrice = getMarketPrice(drug.id, game.location, !isBuy, priceOptions);
-          const availableQty = getAvailableQuantity(drug.id, game.location, game.stockLevels);
-          const bagUsed = game.bag.reduce((sum, item) => sum + item.qty, 0);
-          const bagSpace = game.bagCapacity - bagUsed;
-          const ownedQty = game.bag.find(i => i.name === drug.name)?.qty ?? 0;
+          const drug          = selectedDrug;
+          const grade         = getLocationGrade(drug.id, game.location, game.day);
+          const dialogOptions = { ...priceOptions, grade };
+          const baseUnitPrice = getMarketPrice(drug.id, game.location, false, dialogOptions);
+          const unitPrice     = negotiatedPrice ?? baseUnitPrice;
+          const availableQty  = getAvailableQuantity(drug.id, game.location, game.stockLevels);
+          const bagUsed       = game.bag.reduce((sum, item) => sum + item.qty, 0);
+          const bagSpace      = game.bagCapacity - bagUsed;
+          const maxQty        = Math.min(availableQty, Math.floor(unitPrice > 0 ? game.cash / unitPrice : 0), bagSpace);
+          const numQty        = Math.max(1, parseInt(quantity) || 1);
+          const total         = unitPrice * numQty;
+          const cashAfter     = game.cash - total;
+          const isLockdown    = rivalLevel >= 4;
 
-          const maxQty = isBuy
-            ? Math.min(availableQty, Math.floor(unitPrice > 0 ? game.cash / unitPrice : 0), bagSpace)
-            : ownedQty;
-
-          const numQty = Math.max(1, parseInt(quantity) || 1);
-          const total = unitPrice * numQty;
-          const cashAfter = isBuy ? game.cash - total : game.cash + total;
           return <>
             <DialogTitle sx={{ pb: 1 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -370,8 +418,13 @@ function Market() {
                 </DrugBadge>
                 <span style={{ fontFamily: 'Palatino Linotype, serif', fontSize: '1.2rem', color: drug.color, fontWeight: 700, flex: 1 }}>
                   {drug.name}
+                  {grade !== 'standard' && (
+                    <span style={{ fontSize: '0.72rem', fontWeight: 700, color: GRADE_COLORS[grade], marginLeft: '8px', letterSpacing: '0.08em' }}>
+                      {grade === 'high' ? '✦ HIGH' : '▼ LOW'}
+                    </span>
+                  )}
                 </span>
-                <ActionChip isbuy={String(isBuy)}>{isBuy ? 'BUY' : 'SELL'}</ActionChip>
+                <span style={{ fontFamily: 'Courier New, monospace', fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.15em', textTransform: 'uppercase', padding: '2px 10px', borderRadius: '4px', background: 'rgba(102,126,234,0.15)', border: '1px solid rgba(102,126,234,0.5)', color: '#a5b4fc' }}>BUY</span>
               </div>
             </DialogTitle>
 
@@ -379,6 +432,16 @@ function Market() {
               {error && (
                 <div style={{ padding: '10px 12px', marginBottom: '12px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.4)', borderRadius: '6px', color: '#fca5a5', fontFamily: 'Courier New, monospace', fontSize: '0.8rem' }}>
                   ⚠ {error}
+                </div>
+              )}
+              {isLockdown && (
+                <div style={{ padding: '8px 12px', marginBottom: '10px', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: '6px', color: '#fca5a5', fontFamily: 'Courier New, monospace', fontSize: '0.75rem' }}>
+                  🔒 Rival lockdown — prices hostile
+                </div>
+              )}
+              {haggleResult && (
+                <div style={{ padding: '8px 12px', marginBottom: '10px', background: haggleResult.success ? 'rgba(16,185,129,0.08)' : 'rgba(239,68,68,0.08)', border: `1px solid ${haggleResult.success ? 'rgba(16,185,129,0.3)' : 'rgba(239,68,68,0.3)'}`, borderRadius: '6px', color: haggleResult.success ? '#6ee7b7' : '#fca5a5', fontFamily: 'Courier New, monospace', fontSize: '0.75rem' }}>
+                  {haggleResult.success ? `✓ Haggled ${haggleResult.pct}% better — $${unitPrice?.toLocaleString()}/unit` : `✗ They didn't budge — price worsened to $${unitPrice?.toLocaleString()}/unit`}
                 </div>
               )}
 
@@ -400,9 +463,9 @@ function Market() {
                       fontSize: '0.7rem',
                       fontWeight: 700,
                       letterSpacing: '0.1em',
-                      color: isBuy ? '#a5b4fc' : '#6ee7b7',
-                      background: isBuy ? 'rgba(102,126,234,0.12)' : 'rgba(16,185,129,0.12)',
-                      border: `1px solid ${isBuy ? 'rgba(102,126,234,0.4)' : 'rgba(16,185,129,0.4)'}`,
+                      color: '#a5b4fc',
+                      background: 'rgba(102,126,234,0.12)',
+                      border: '1px solid rgba(102,126,234,0.4)',
                       borderRadius: '6px',
                       padding: '6px 12px',
                       cursor: 'pointer',
@@ -417,13 +480,13 @@ function Market() {
               <StatGrid>
                 <StatLine>
                   <StatKey>Price / unit</StatKey>
-                  <span style={{ color: '#ede0ff' }}>${unitPrice?.toLocaleString()}</span>
+                  <span style={{ color: negotiatedPrice ? '#6ee7b7' : '#ede0ff' }}>
+                    ${unitPrice?.toLocaleString()}
+                  </span>
                 </StatLine>
                 <TotalLine>
                   <StatKey style={{ color: '#c084fc' }}>Total</StatKey>
-                  <span style={{ color: isBuy ? '#f87171' : '#6ee7b7' }}>
-                    {isBuy ? '-' : '+'}${total.toLocaleString()}
-                  </span>
+                  <span style={{ color: '#f87171' }}>-${total.toLocaleString()}</span>
                 </TotalLine>
                 <StatLine>
                   <StatKey>Cash after</StatKey>
@@ -431,21 +494,28 @@ function Market() {
                     ${cashAfter.toLocaleString()}
                   </span>
                 </StatLine>
-                {isBuy && (
-                  <StatLine>
-                    <StatKey>Bag space after</StatKey>
-                    <span style={{ color: bagSpace - numQty >= 0 ? '#8b95c9' : '#f87171' }}>
-                      {bagSpace - numQty} / {game.bagCapacity}
-                    </span>
-                  </StatLine>
-                )}
+                <StatLine>
+                  <StatKey>Bag space after</StatKey>
+                  <span style={{ color: bagSpace - numQty >= 0 ? '#8b95c9' : '#f87171' }}>
+                    {bagSpace - numQty} / {game.bagCapacity}
+                  </span>
+                </StatLine>
               </StatGrid>
             </DialogContent>
 
-            <DialogActions sx={{ px: 3, pb: 2.5, gap: 1 }}>
+            <DialogActions sx={{ px: 3, pb: 2.5, gap: 1, flexWrap: 'wrap' }}>
               <Button onClick={handleClose} sx={{ color: '#64748b', fontFamily: 'Courier New, monospace', letterSpacing: '0.08em' }}>
                 Cancel
               </Button>
+              {!haggledThisDialog && (
+                <Button
+                  onClick={() => handleHaggle(baseUnitPrice)}
+                  variant="outlined"
+                  sx={{ fontFamily: 'Courier New, monospace', fontSize: '0.75rem', letterSpacing: '0.08em', color: '#fbbf24', borderColor: 'rgba(251,191,36,0.4)', '&:hover': { borderColor: '#fbbf24', background: 'rgba(251,191,36,0.08)' } }}
+                >
+                  Haggle
+                </Button>
+              )}
               <Button
                 onClick={handleConfirm}
                 variant="contained"
@@ -453,12 +523,12 @@ function Market() {
                   fontFamily: 'Courier New, monospace',
                   fontWeight: 700,
                   letterSpacing: '0.1em',
-                  background: isBuy ? 'linear-gradient(135deg, #4c1d95, #7c3aed)' : 'linear-gradient(135deg, #065f46, #059669)',
+                  background: 'linear-gradient(135deg, #4c1d95, #7c3aed)',
                   '&:hover': { filter: 'brightness(1.15)' },
-                  boxShadow: isBuy ? '0 0 12px rgba(124,58,237,0.4)' : '0 0 12px rgba(5,150,105,0.4)',
+                  boxShadow: '0 0 12px rgba(124,58,237,0.4)',
                 }}
               >
-                Confirm {isBuy ? 'Purchase' : 'Sale'}
+                Confirm Purchase
               </Button>
             </DialogActions>
           </>;

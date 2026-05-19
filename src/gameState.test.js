@@ -1,6 +1,6 @@
 import { INITIAL_STATE, loadState, saveState, SESSION_KEY } from './gameState';
 
-beforeEach(() => sessionStorage.clear());
+beforeEach(() => localStorage.clear());
 
 describe('INITIAL_STATE', () => {
   test('has required game fields', () => {
@@ -43,29 +43,29 @@ describe('loadState', () => {
     expect(loadState()).toEqual(INITIAL_STATE);
   });
 
-  test('returns parsed state from sessionStorage', () => {
+  test('returns parsed state from localStorage', () => {
     const saved = { ...INITIAL_STATE, cash: 9999 };
-    sessionStorage.setItem(SESSION_KEY, JSON.stringify(saved));
+    localStorage.setItem(SESSION_KEY, JSON.stringify(saved));
     expect(loadState().cash).toBe(9999);
   });
 
   test('returns INITIAL_STATE when storage contains corrupt JSON', () => {
-    sessionStorage.setItem(SESSION_KEY, 'not-valid-json{{');
+    localStorage.setItem(SESSION_KEY, 'not-valid-json{{');
     expect(loadState()).toEqual(INITIAL_STATE);
   });
 });
 
 describe('saveState', () => {
-  test('writes serialized state to sessionStorage', () => {
+  test('writes serialized state to localStorage', () => {
     saveState(INITIAL_STATE);
-    const raw = sessionStorage.getItem(SESSION_KEY);
+    const raw = localStorage.getItem(SESSION_KEY);
     expect(JSON.parse(raw)).toEqual(INITIAL_STATE);
   });
 
   test('overwrites previous state', () => {
     saveState({ ...INITIAL_STATE, cash: 100 });
     saveState({ ...INITIAL_STATE, cash: 500 });
-    const raw = sessionStorage.getItem(SESSION_KEY);
+    const raw = localStorage.getItem(SESSION_KEY);
     expect(JSON.parse(raw).cash).toBe(500);
   });
 });

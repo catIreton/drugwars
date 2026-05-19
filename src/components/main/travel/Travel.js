@@ -1,6 +1,8 @@
-import React, { useEffect, useRef, useCallback } from 'react';
-
+import React, { useCallback, useEffect, useRef } from 'react';
 import { styled } from '@mui/material/styles';
+import { MapContainer, TileLayer, CircleMarker, Tooltip, useMap } from 'react-leaflet';
+import 'leaflet/dist/leaflet.css';
+import './travel.css';
 import { useGame } from '../../GameContext';
 
 import Northtown from '../../../images/northtown.jpg';
@@ -12,38 +14,24 @@ import MartinCity from '../../../images/martincity.jpg';
 import Independence from '../../../images/independence.jpg';
 import JOCO from '../../../images/joco.jpg';
 
-const MapContainer = styled('div')({
+const MapCard = styled('div')({
   position: 'relative',
   width: '100%',
-  height: '500px',
+  height: '520px',
   border: '2px solid #667eea',
   borderRadius: '8px',
   overflow: 'hidden',
-});
-
-const MapWrapper = styled('div')({
-  position: 'relative',
-  width: '100%',
-  height: '100%',
   display: 'flex',
-  gap: '12px',
-});
-
-const MapElement = styled('div')({
-  flex: 1,
-  width: '100%',
-  height: '100%',
-  borderRadius: '6px',
-  overflow: 'hidden',
 });
 
 const LegendContainer = styled('div')({
-  flex: '0 0 150px',
-  overflow: 'auto',
-  backgroundColor: '#f8f9fa',
-  borderLeft: '1px solid #ddd',
-  padding: '12px',
-  fontSize: '0.85rem',
+  flex: '0 0 168px',
+  overflowY: 'auto',
+  backgroundColor: '#f5f0e8',
+  borderLeft: '1px solid #c8bfa8',
+  padding: '10px',
+  fontSize: '0.82rem',
+  zIndex: 1000,
 });
 
 const CurrentLocContainer = styled('div')({
@@ -54,197 +42,203 @@ const CurrentLocContainer = styled('div')({
   justifyContent: 'center',
 });
 
-// Real Kansas City coordinates (lat, lng)
-const LOCATION_COORDINATES = {
-  'Northtown': { lat: 39.1140, lng: -94.5797 },
-  'Plaza': { lat: 39.0433, lng: -94.5910 },
-  'Downtown': { lat: 39.0997, lng: -94.5786 },
-  'Westport': { lat: 39.0553, lng: -94.5859 },
-  'Martin City': { lat: 38.9853, lng: -94.6180 },
-  'Brookside': { lat: 39.0315, lng: -94.5415 },
-  'Independence': { lat: 39.0934, lng: -94.4162 },
-  'JOCO': { lat: 38.9633, lng: -94.7230 },
-};
-
+// ── Location data ──────────────────────────────────────────────────────────────
 const LOCATION_COLORS = {
-  'Northtown': '#8B4513',
-  'Plaza': '#D4AF37',
-  'Downtown': '#2C3E50',
-  'Westport': '#E74C3C',
-  'Brookside': '#27AE60',
-  'Martin City': '#7D3C0C',
-  'Independence': '#9B59B6',
-  'JOCO': '#3498DB',
+  'Northtown':    '#8B4513',
+  'Plaza':        '#b8860b',
+  'Downtown':     '#2563eb',
+  'Westport':     '#dc2626',
+  'Brookside':    '#16a34a',
+  'Martin City':  '#92400e',
+  'Independence': '#7c3aed',
+  'JOCO':         '#0369a1',
+  'Crossroads':   '#4338ca',
+  'Midtown':      '#0e7490',
+  'Raytown':      '#a16207',
+  'Lenexa':       '#15803d',
 };
 
 const LOCATIONS = [
-  { name: 'Northtown', src: Northtown, ButtonComponent: 'primary' },
-  { name: 'Plaza', src: Plaza, ButtonComponent: 'secondary' },
-  { name: 'Downtown', src: Downtown, ButtonComponent: 'primary' },
-  { name: 'Westport', src: Westport, ButtonComponent: 'secondary' },
-  { name: 'Brookside', src: Brookside, ButtonComponent: 'secondary' },
-  { name: 'Martin City', src: MartinCity, ButtonComponent: 'primary' },
-  { name: 'Independence', src: Independence, ButtonComponent: 'secondary' },
-  { name: 'JOCO', src: JOCO, ButtonComponent: 'primary' },
+  { name: 'Northtown',    src: Northtown    },
+  { name: 'Plaza',        src: Plaza        },
+  { name: 'Downtown',     src: Downtown     },
+  { name: 'Westport',     src: Westport     },
+  { name: 'Brookside',    src: Brookside    },
+  { name: 'Martin City',  src: MartinCity   },
+  { name: 'Independence', src: Independence },
+  { name: 'JOCO',         src: JOCO         },
+  { name: 'Crossroads',   src: null         },
+  { name: 'Midtown',      src: null         },
+  { name: 'Raytown',      src: null         },
+  { name: 'Lenexa',       src: null         },
 ];
 
+const LOCATION_COORDS = {
+  'Northtown':    [39.110, -94.543],
+  'Downtown':     [39.096, -94.578],
+  'Crossroads':   [39.083, -94.578],
+  'Midtown':      [39.063, -94.570],
+  'Westport':     [39.046, -94.592],
+  'Plaza':        [39.037, -94.599],
+  'Brookside':    [39.022, -94.576],
+  'Martin City':  [38.934, -94.592],
+  'Independence': [39.091, -94.414],
+  'JOCO':         [38.982, -94.669],
+  'Raytown':      [39.012, -94.463],
+  'Lenexa':       [38.963, -94.734],
+};
+
+// ── Map fly-to controller (must live inside MapContainer) ─────────────────────
+function MapFlyTo({ location }) {
+  const map = useMap();
+  const firstRender = useRef(true);
+
+  useEffect(() => {
+    if (!location || !LOCATION_COORDS[location]) return;
+    if (firstRender.current) {
+      firstRender.current = false;
+      return;
+    }
+    map.flyTo(LOCATION_COORDS[location], 14, { duration: 0.55 });
+  }, [location, map]);
+
+  return null;
+}
+
+// ── Travel component ──────────────────────────────────────────────────────────
+function Travel() {
+  const { game, travel } = useGame();
+
+  const handleTravel = useCallback((name, src) => {
+    travel(name, src);
+  }, [travel]);
+
+  const initialCenter = LOCATION_COORDS[game.location] || [39.07, -94.58];
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', width: '100%', height: '100%' }}>
+      <h2 style={{ margin: '0 0 12px 0', fontSize: '1.1rem', color: '#667eea' }}>Kansas City</h2>
+      <MapCard>
+        {/* Leaflet map */}
+        <div style={{ flex: 1, minWidth: 0, height: '100%' }}>
+          <MapContainer
+            center={initialCenter}
+            zoom={13}
+            style={{ width: '100%', height: '100%' }}
+            zoomControl={true}
+          >
+            <TileLayer
+              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+            />
+            <MapFlyTo location={game.location} />
+
+            {LOCATIONS.map(({ name, src }) => {
+              const coords = LOCATION_COORDS[name];
+              if (!coords) return null;
+              const isHere    = name === game.location;
+              const color     = LOCATION_COLORS[name];
+              const rivalLvl  = game.rivals?.[name]?.level ?? 0;
+              const showRival = game.scannerActive && rivalLvl > 0;
+
+              return (
+                <CircleMarker
+                  key={name}
+                  center={coords}
+                  radius={isHere ? 11 : 8}
+                  pathOptions={{
+                    color:        isHere ? 'white' : color,
+                    fillColor:    isHere ? color   : 'white',
+                    fillOpacity:  1,
+                    weight:       isHere ? 3 : 2,
+                  }}
+                  eventHandlers={{ click: () => handleTravel(name, src) }}
+                >
+                  <Tooltip permanent direction="bottom" offset={[0, 6]}
+                    className="kc-pin-label">
+                    <span style={{
+                      color:      color,
+                      fontWeight: isHere ? 700 : 500,
+                      fontSize:   '11px',
+                      whiteSpace: 'nowrap',
+                    }}>
+                      {name}{showRival ? ' ' + (rivalLvl >= 4 ? '🔒' : '👊') : ''}
+                    </span>
+                  </Tooltip>
+                </CircleMarker>
+              );
+            })}
+          </MapContainer>
+        </div>
+
+        {/* Sidebar legend */}
+        <LegendContainer>
+          <div style={{ fontWeight: 700, marginBottom: '8px', color: '#444', fontSize: '0.78rem', letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+            Neighborhoods
+          </div>
+          {LOCATIONS.map(({ name, src }, index) => {
+            const isHere     = name === game.location;
+            const rivalLevel = game.rivals?.[name]?.level ?? 0;
+            const showRival  = game.scannerActive && rivalLevel > 0;
+            return (
+              <div
+                key={name}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '7px',
+                  marginBottom: '6px',
+                  cursor: 'pointer',
+                  padding: '3px 5px',
+                  borderRadius: '4px',
+                  backgroundColor: isHere ? `${LOCATION_COLORS[name]}22` : 'transparent',
+                  border: isHere ? `1px solid ${LOCATION_COLORS[name]}66` : '1px solid transparent',
+                  fontWeight: isHere ? 700 : 400,
+                }}
+                onClick={() => handleTravel(name, src)}
+              >
+                <div style={{
+                  width: 18, height: 18, borderRadius: '50%',
+                  background: 'white', border: `2px solid ${LOCATION_COLORS[name]}`,
+                  flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: '0.55rem', color: LOCATION_COLORS[name], fontWeight: 700,
+                  fontFamily: 'Arial, sans-serif',
+                }}>
+                  {index + 1}
+                </div>
+                <div style={{ flex: 1, fontSize: '0.78rem', color: '#222' }}>{name}</div>
+                {showRival && (
+                  <span style={{ fontSize: '0.6rem', color: rivalLevel >= 4 ? '#dc2626' : '#ea580c', fontWeight: 700 }}>
+                    {rivalLevel >= 4 ? '🔒' : '👊'}
+                  </span>
+                )}
+              </div>
+            );
+          })}
+        </LegendContainer>
+      </MapCard>
+    </div>
+  );
+}
+
+// ── Current location display ───────────────────────────────────────────────────
 function CurrentLoc() {
   const { game } = useGame();
-  const locationColor = LOCATION_COLORS[game?.location] || '#000000';
-  const imageSrc = game?.locationSrc || LOCATIONS.find(l => l.name === game?.location)?.src;
+  const locationColor = LOCATION_COLORS[game?.location] || '#333';
+  const imageSrc = LOCATIONS.find(l => l.name === game?.location)?.src;
 
   return (
     <CurrentLocContainer>
       <h1 style={{ margin: '0 0 2px 0', fontSize: '1.1rem' }}>Kansas City, MO</h1>
       <h2 style={{ margin: '0 0 10px 0', color: locationColor, fontSize: '1.3rem' }}>{game?.location}</h2>
       <img
-        style={imageSrc ? { height: '150px', width: '150px', borderRadius: '8px' } : { display: 'none' }}
+        style={imageSrc
+          ? { width: '100%', maxWidth: '180px', aspectRatio: '1', objectFit: 'cover', borderRadius: '8px', display: 'block' }
+          : { display: 'none' }}
         src={imageSrc}
         alt={game?.location}
       />
     </CurrentLocContainer>
-  );
-}
-
-function Travel() {
-  const { travel } = useGame();
-  const mapRef = useRef(null);
-  const mapInstanceRef = useRef(null);
-  const markersRef = useRef([]);
-
-  const handleTravel = useCallback((name, src) => {
-    travel(name, src);
-  }, [travel]);
-
-  const createBusStopIcon = useCallback((number, name) => {
-    const bgColor = LOCATION_COLORS[name] || '#667eea';
-    const svg = `<svg width="40" height="40" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
-      <circle cx="20" cy="20" r="18" fill="${bgColor}" stroke="white" stroke-width="2"/>
-      <circle cx="20" cy="20" r="16" fill="${bgColor}"/>
-      <text x="20" y="26" font-size="18" font-weight="bold" text-anchor="middle" fill="white">${number}</text>
-    </svg>`;
-
-    if (window.google && window.google.maps) {
-      return {
-        url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`,
-        scaledSize: new window.google.maps.Size(40, 40),
-        origin: new window.google.maps.Point(0, 0),
-        anchor: new window.google.maps.Point(20, 40),
-      };
-    }
-
-    return { url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}` };
-  }, []);
-
-  const initializeMap = useCallback(() => {
-    if (!window.google || !window.google.maps) return;
-
-    const kcCenter = { lat: 39.0997, lng: -94.5786 };
-
-    const map = new window.google.maps.Map(mapRef.current, {
-      zoom: 11,
-      center: kcCenter,
-      styles: [
-        {
-          featureType: 'all',
-          elementType: 'labels.text.fill',
-          stylers: [{ color: '#667eea' }],
-        },
-        {
-          featureType: 'water',
-          elementType: 'geometry.fill',
-          stylers: [{ color: '#b3d9ff' }],
-        },
-      ],
-    });
-
-    mapInstanceRef.current = map;
-    markersRef.current = [];
-
-    LOCATIONS.forEach(({ name, src, ButtonComponent }, index) => {
-      const coords = LOCATION_COORDINATES[name];
-
-      const marker = new window.google.maps.Marker({
-        position: coords,
-        map: map,
-        title: name,
-        icon: createBusStopIcon(index + 1, name),
-      });
-
-      marker.addListener('click', () => {
-        handleTravel(name, src);
-      });
-
-      markersRef.current.push(marker);
-    });
-  }, [createBusStopIcon, handleTravel]);
-
-  useEffect(() => {
-    if (window.google && window.google.maps) {
-      initializeMap();
-    } else {
-      const existingScript = document.querySelector('script[src*="maps.googleapis.com"]');
-      if (existingScript) {
-        const checkGoogle = setInterval(() => {
-          if (window.google && window.google.maps) {
-            initializeMap();
-            clearInterval(checkGoogle);
-          }
-        }, 100);
-      } else {
-        const script = document.createElement('script');
-        script.src = `https://maps.googleapis.com/maps/api/js?key=${process.env.REACT_APP_GOOGLE_MAPS_KEY}`;
-        script.async = true;
-        script.defer = true;
-        script.onload = () => {
-          setTimeout(() => {
-            if (window.google && window.google.maps) initializeMap();
-          }, 100);
-        };
-        script.onerror = () => console.error('Failed to load Google Maps API');
-        document.head.appendChild(script);
-      }
-    }
-  }, [initializeMap]);
-
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', width: '100%', height: '100%' }}>
-      <h2 style={{ margin: '0 0 12px 0', fontSize: '1.1rem', color: '#667eea' }}>Kansas City Transit Map</h2>
-      <MapContainer>
-        <MapWrapper>
-          <MapElement ref={mapRef} />
-          <LegendContainer>
-            <div style={{ fontWeight: 'bold', marginBottom: '8px', color: '#667eea' }}>Bus Stops</div>
-            {LOCATIONS.map(({ name, src }, index) => (
-              <div
-                key={name}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  marginBottom: '8px',
-                  cursor: 'pointer',
-                  padding: '4px',
-                  borderRadius: '4px',
-                  backgroundColor: 'rgba(102, 126, 234, 0.05)',
-                }}
-                onClick={() => {
-                  const coords = LOCATION_COORDINATES[name];
-                  if (mapInstanceRef.current) {
-                    mapInstanceRef.current.panTo(coords);
-                    mapInstanceRef.current.setZoom(13);
-                  }
-                  handleTravel(name, src);
-                }}
-              >
-                <div style={{ width: 24, height: 24, borderRadius: '50%', background: LOCATION_COLORS[name], flexShrink: 0 }} />
-                <div style={{ flex: 1 }}>{name}</div>
-              </div>
-            ))}
-          </LegendContainer>
-        </MapWrapper>
-      </MapContainer>
-    </div>
   );
 }
 

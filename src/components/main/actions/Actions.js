@@ -7,6 +7,9 @@ import DialogActions from '@mui/material/DialogActions';
 import Button from '@mui/material/Button';
 import TextField from '@mui/material/TextField';
 import { useGame } from '../../GameContext';
+import { DIFF_CONFIG } from '../../GameContext';
+import { ITEM_CATALOG } from '../../../data/items';
+import { DRUGS, getMarketPrice } from '../../../data/drugs';
 
 // ── Shared dialog chrome ─────────────────────────────────────────────────────
 
@@ -36,16 +39,19 @@ const confirmSx = (color = 'purple') => ({
   fontFamily: 'Courier New, monospace',
   fontWeight: 700,
   letterSpacing: '0.1em',
+  color: '#ffffff',
   background: color === 'red'
     ? 'linear-gradient(135deg, #7f1d1d, #dc2626)'
     : color === 'green'
     ? 'linear-gradient(135deg, #065f46, #059669)'
+    : color === 'orange'
+    ? 'linear-gradient(135deg, #7c2d12, #ea580c)'
     : 'linear-gradient(135deg, #4c1d95, #7c3aed)',
-  '&:hover': { filter: 'brightness(1.15)' },
-  boxShadow: color === 'red'
-    ? '0 0 12px rgba(220,38,38,0.4)'
-    : color === 'green'
-    ? '0 0 12px rgba(5,150,105,0.4)'
+  '&:hover': { filter: 'brightness(1.15)', color: '#ffffff' },
+  '&.Mui-disabled': { color: 'rgba(255,255,255,0.45)' },
+  boxShadow: color === 'red'    ? '0 0 12px rgba(220,38,38,0.4)'
+    : color === 'green'  ? '0 0 12px rgba(5,150,105,0.4)'
+    : color === 'orange' ? '0 0 12px rgba(234,88,12,0.4)'
     : '0 0 12px rgba(124,58,237,0.4)',
 });
 
@@ -71,7 +77,7 @@ const darkTextField = {
   },
 };
 
-// ── Stat rows (finances + dump list) ─────────────────────────────────────────
+// ── Shared stat rows ──────────────────────────────────────────────────────────
 
 const StatLine = styled('div')({
   display: 'flex',
@@ -100,6 +106,12 @@ const Subtext = styled('div')({
   marginBottom: '14px',
   lineHeight: 1.5,
 });
+
+const ErrorBox = ({ msg }) => msg ? (
+  <div style={{ padding: '10px 12px', marginBottom: '12px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.4)', borderRadius: '6px', color: '#fca5a5', fontFamily: 'Courier New, monospace', fontSize: '0.8rem' }}>
+    ⚠ {msg}
+  </div>
+) : null;
 
 // ── Terminal chrome ───────────────────────────────────────────────────────────
 
@@ -151,26 +163,83 @@ const CmdButton = styled('button')({
     textShadow: '0 0 6px rgba(127,255,0,0.5)',
   },
   '&:active': { opacity: 0.5 },
+  '&:disabled': { opacity: 0.35, cursor: 'not-allowed' },
 });
 
 const Prompt = styled('span')({ color: '#00aa28', userSelect: 'none' });
 
+const SectionLabel = styled('div')({
+  display: 'flex',
+  alignItems: 'center',
+  gap: '6px',
+  fontSize: '0.63rem',
+  color: '#00aa28',
+  letterSpacing: '0.18em',
+  textTransform: 'uppercase',
+  margin: '10px 0 2px',
+  opacity: 0.6,
+  userSelect: 'none',
+  '&::after': {
+    content: '""',
+    flex: 1,
+    height: '1px',
+    background: 'rgba(0,255,65,0.18)',
+  },
+});
+
+const DiffButton = styled('button')(({ active }) => ({
+  flex: 1,
+  fontFamily: 'Courier New, monospace',
+  fontSize: '0.78rem',
+  fontWeight: 700,
+  letterSpacing: '0.08em',
+  color: active ? '#0d001a' : '#8b95c9',
+  background: active ? '#a78bfa' : 'rgba(102,126,234,0.06)',
+  border: `1px solid ${active ? '#a78bfa' : 'rgba(102,126,234,0.2)'}`,
+  borderRadius: '6px',
+  padding: '7px 4px',
+  cursor: 'pointer',
+  transition: 'all 0.12s ease',
+  '&:hover': { filter: 'brightness(1.15)' },
+}));
+
 // ── Component ─────────────────────────────────────────────────────────────────
 
 function Actions() {
-  const { game, dumpBag, takeLoan, payLoan, hireCrew, fireCrew } = useGame();
-  const [showDump, setShowDump] = useState(false);
-  const [showFinances, setShowFinances] = useState(false);
-  const [showLoan, setShowLoan] = useState(false);
-  const [showStore, setShowStore] = useState(false);
-  const [storeError, setStoreError] = useState(null);
-  const [loanAmount, setLoanAmount] = useState(1000);
-  const [loanError, setLoanError] = useState(null);
-  const [loanMode, setLoanMode] = useState('take');
+  const {
+    game, dumpBag, takeLoan, payLoan,
+    hireCrew, fireCrew, upgradeBag,
+    tipOff, setDifficulty, resetGame,
+    buyConsumable, useItem: activateItem, bulkImport,
+  } = useGame();
 
-  const dailyInterest = Math.round(game.debt * 0.05);
-  const netWorth = game.cash - game.debt;
-  const daysLeft = 60 - game.day;
+  const [showDump,       setShowDump]       = useState(false);
+  const [showFinances,   setShowFinances]   = useState(false);
+  const [showLoan,       setShowLoan]       = useState(false);
+  const [showStore,      setShowStore]      = useState(false);
+  const [showTipOff,     setShowTipOff]     = useState(false);
+  const [showDifficulty, setShowDifficulty] = useState(false);
+  const [showNewGame,    setShowNewGame]    = useState(false);
+  const [showUseItem,    setShowUseItem]    = useState(false);
+  const [showBulkImport, setShowBulkImport] = useState(false);
+  const [storeError,     setStoreError]     = useState(null);
+  const [loanAmount,     setLoanAmount]     = useState(1000);
+  const [loanError,      setLoanError]      = useState(null);
+  const [loanMode,       setLoanMode]       = useState('take');
+  const [tipError,       setTipError]       = useState(null);
+  const [diffError,      setDiffError]      = useState(null);
+  const [newGameDiff,    setNewGameDiff]    = useState(game.difficulty ?? 'normal');
+  const [useItemError,   setUseItemError]   = useState(null);
+  const [bulkError,      setBulkError]      = useState(null);
+  const [bulkDrug,       setBulkDrug]       = useState(null);
+  const [bulkQty,        setBulkQty]        = useState(10);
+
+  const diff         = DIFF_CONFIG[game.difficulty ?? 'normal'];
+  const interestRate = Math.round(diff.rate * 100);
+  const dailyInterest = Math.round(game.debt * diff.rate);
+  const netWorth     = game.cash - game.debt;
+  const daysLeft     = 60 - game.day;
+  const bagUpgradesUsed = game.bagUpgradesUsed ?? 0;
 
   const openLoan = (mode) => { setLoanMode(mode); setLoanAmount(1000); setLoanError(null); setShowLoan(true); };
 
@@ -179,40 +248,77 @@ function Actions() {
       if (loanMode === 'take') takeLoan(loanAmount);
       else payLoan(loanAmount);
       setShowLoan(false);
-    } catch (e) {
-      setLoanError(e.message);
-    }
+    } catch (e) { setLoanError(e.message); }
+  };
+
+  const confirmTipOff = () => {
+    try {
+      tipOff();
+      setShowTipOff(false);
+    } catch (e) { setTipError(e.message); }
+  };
+
+  const confirmDifficulty = (level) => {
+    try {
+      setDifficulty(level);
+      setShowDifficulty(false);
+    } catch (e) { setDiffError(e.message); }
   };
 
   return (
     <Terminal>
       <TermHeader>C:\DRUGWARS\KC&gt; _</TermHeader>
       <TermTitle>&gt; ACTIONS</TermTitle>
-      <CmdButton onClick={() => game.bag.length > 0 && setShowDump(true)}><Prompt>$</Prompt> dump_bag</CmdButton>
+
+      <SectionLabel>money</SectionLabel>
       <CmdButton onClick={() => setShowFinances(true)}><Prompt>$</Prompt> finances</CmdButton>
       <CmdButton onClick={() => openLoan('take')}><Prompt>$</Prompt> take_loan</CmdButton>
       <CmdButton onClick={() => openLoan('pay')}><Prompt>$</Prompt> pay_loan</CmdButton>
+
+      <SectionLabel>street</SectionLabel>
+      <CmdButton onClick={() => game.bag.length > 0 && setShowDump(true)}><Prompt>$</Prompt> dump_bag</CmdButton>
       <CmdButton onClick={() => { setStoreError(null); setShowStore(true); }}><Prompt>$</Prompt> visit_store</CmdButton>
-      {(game.items?.length ?? 0) > 0 && <CmdButton><Prompt>$</Prompt> use_item</CmdButton>}
+      <CmdButton
+        onClick={() => { setTipError(null); setShowTipOff(true); }}
+        disabled={(game.tipOffCooldown ?? 0) > 0}
+        title={(game.tipOffCooldown ?? 0) > 0 ? `Cooldown: ${game.tipOffCooldown} days` : undefined}
+      >
+        <Prompt>$</Prompt> tip_off{(game.tipOffCooldown ?? 0) > 0 ? ` [${game.tipOffCooldown}d]` : ''}
+      </CmdButton>
+      <CmdButton
+        onClick={() => { setBulkError(null); setBulkDrug(null); setBulkQty(10); setShowBulkImport(true); }}
+        disabled={(game.bulkImportCooldown ?? 0) > 0}
+        title={(game.bulkImportCooldown ?? 0) > 0 ? `Cooldown: ${game.bulkImportCooldown} days` : undefined}
+      >
+        <Prompt>$</Prompt> bulk_import{(game.bulkImportCooldown ?? 0) > 0 ? ` [${game.bulkImportCooldown}d]` : ''}
+      </CmdButton>
+      {(game.items?.length ?? 0) > 0 && (
+        <CmdButton onClick={() => { setUseItemError(null); setShowUseItem(true); }}>
+          <Prompt>$</Prompt> use_item
+        </CmdButton>
+      )}
 
-      {/* ── Store / Crew ── */}
+      <SectionLabel>game</SectionLabel>
+      <CmdButton
+        onClick={() => { setDiffError(null); setShowDifficulty(true); }}
+        disabled={game.day > 1}
+        title={game.day > 1 ? 'Difficulty locked after day 1' : undefined}
+      >
+        <Prompt>$</Prompt> difficulty{game.day > 1 ? ' [locked]' : ''}
+      </CmdButton>
+      <CmdButton onClick={() => { setNewGameDiff(game.difficulty ?? 'normal'); setShowNewGame(true); }}><Prompt>$</Prompt> new_game</CmdButton>
+
+      {/* ── Store / Crew + Bag Upgrades ── */}
       <Dialog open={showStore} onClose={() => setShowStore(false)} maxWidth="xs" fullWidth PaperProps={{ sx: darkPaper }}>
-        <DialogTitle sx={titleSx}>👥 Crew Management</DialogTitle>
+        <DialogTitle sx={titleSx}>🏪 Store</DialogTitle>
         <DialogContent sx={{ pt: 1.5 }}>
-          {storeError && (
-            <div style={{ padding: '10px 12px', marginBottom: '12px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.4)', borderRadius: '6px', color: '#fca5a5', fontFamily: 'Courier New, monospace', fontSize: '0.8rem' }}>
-              ⚠ {storeError}
-            </div>
-          )}
+          <ErrorBox msg={storeError} />
 
-          {/* Current stats */}
+          {/* Crew section */}
+          <div style={{ marginBottom: 12, fontFamily: 'Courier New, monospace', fontSize: '0.72rem', color: '#c084fc', letterSpacing: '0.1em', textTransform: 'uppercase' }}>— Crew —</div>
           <StatLine>
             <StatKey>Crew</StatKey>
             <span style={{ color: '#a5b4fc', fontWeight: 700 }}>{game.crew} / 8</span>
-          </StatLine>
-          <StatLine>
-            <StatKey>Bag Capacity</StatKey>
-            <span style={{ color: '#a5b4fc' }}>{game.bagCapacity} units</span>
           </StatLine>
           <StatLine>
             <StatKey>Daily Upkeep</StatKey>
@@ -220,30 +326,49 @@ function Actions() {
               {game.crew > 0 ? `-$${(game.crew * 150).toLocaleString()}/day` : 'None'}
             </span>
           </StatLine>
-          <StatLine style={{ border: '1px solid rgba(180,90,255,0.25)', background: 'rgba(180,90,255,0.07)', marginBottom: 16 }}>
+          <StatLine style={{ border: '1px solid rgba(180,90,255,0.25)', background: 'rgba(180,90,255,0.07)', marginBottom: 12 }}>
             <StatKey style={{ color: '#c084fc' }}>Buy Discount</StatKey>
             <span style={{ color: '#6ee7b7', fontWeight: 600 }}>
               {game.crew >= 6 ? '15%' : game.crew >= 4 ? '10%' : game.crew >= 2 ? '5%' : 'None (need 2+)'}
             </span>
           </StatLine>
 
-          {/* Perk ladder */}
-          {[
-            { threshold: 2, label: '5% buy discount' },
-            { threshold: 4, label: '10% buy discount' },
-            { threshold: 6, label: '15% buy discount' },
-          ].map(p => (
-            <div key={p.threshold} style={{
-              display: 'flex', alignItems: 'center', gap: 8, marginBottom: 5,
-              fontFamily: 'Courier New, monospace', fontSize: '0.75rem',
-              color: game.crew >= p.threshold ? '#6ee7b7' : '#475569',
-            }}>
-              <span>{game.crew >= p.threshold ? '✓' : '○'}</span>
-              <span>{p.threshold} crew — {p.label}</span>
-            </div>
-          ))}
+          {/* Bag Upgrades section */}
+          <div style={{ marginBottom: 8, fontFamily: 'Courier New, monospace', fontSize: '0.72rem', color: '#c084fc', letterSpacing: '0.1em', textTransform: 'uppercase' }}>— Bag Upgrades —</div>
+          <StatLine>
+            <StatKey>Capacity</StatKey>
+            <span style={{ color: '#a5b4fc' }}>{game.bagCapacity} units</span>
+          </StatLine>
+          <StatLine style={{ marginBottom: 12 }}>
+            <StatKey>Upgrades Used</StatKey>
+            <span style={{ color: bagUpgradesUsed >= 4 ? '#f87171' : '#6ee7b7' }}>{bagUpgradesUsed} / 4</span>
+          </StatLine>
+
+          {/* Consumables section */}
+          <div style={{ marginBottom: 8, fontFamily: 'Courier New, monospace', fontSize: '0.72rem', color: '#c084fc', letterSpacing: '0.1em', textTransform: 'uppercase' }}>— Consumables —</div>
+          {ITEM_CATALOG.map(item => {
+            const owned  = game.items?.find(i => i.id === item.id)?.qty ?? 0;
+            const maxed  = owned >= item.maxStack;
+            return (
+              <StatLine key={item.id} style={{ marginBottom: 6 }}>
+                <span style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  <StatKey>{item.emoji} {item.name} <span style={{ color: '#64748b' }}>({owned}/{item.maxStack})</span></StatKey>
+                  <span style={{ fontFamily: 'Courier New, monospace', fontSize: '0.68rem', color: '#64748b', fontWeight: 400 }}>{item.description}</span>
+                </span>
+                <Button
+                  disabled={maxed || game.cash < item.price}
+                  onClick={() => { try { buyConsumable(item.id); setStoreError(null); } catch (e) { setStoreError(e.message); } }}
+                  variant="outlined"
+                  size="small"
+                  sx={{ fontFamily: 'Courier New, monospace', fontSize: '0.68rem', letterSpacing: '0.06em', color: '#a78bfa', borderColor: 'rgba(167,139,250,0.4)', whiteSpace: 'nowrap', ml: 1, '&:hover': { borderColor: '#a78bfa', background: 'rgba(167,139,250,0.08)' }, '&:disabled': { opacity: 0.4 } }}
+                >
+                  ${item.price.toLocaleString()}
+                </Button>
+              </StatLine>
+            );
+          })}
         </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 2.5, gap: 1 }}>
+        <DialogActions sx={{ px: 3, pb: 2.5, gap: 1, flexWrap: 'wrap' }}>
           <Button onClick={() => setShowStore(false)} sx={cancelSx}>Close</Button>
           <Button
             disabled={game.crew <= 0}
@@ -251,7 +376,7 @@ function Actions() {
             variant="outlined"
             sx={{ fontFamily: 'Courier New, monospace', letterSpacing: '0.08em', color: '#f87171', borderColor: 'rgba(248,113,113,0.4)', '&:hover': { borderColor: '#f87171', background: 'rgba(248,113,113,0.08)' } }}
           >
-            Release (−1)
+            Release Crew (−1)
           </Button>
           <Button
             disabled={game.crew >= 8}
@@ -261,10 +386,119 @@ function Actions() {
           >
             Hire $800
           </Button>
+          <Button
+            disabled={bagUpgradesUsed >= 4 || game.cash < 2000}
+            onClick={() => { try { upgradeBag(); setStoreError(null); } catch (e) { setStoreError(e.message); } }}
+            variant="contained"
+            sx={{ ...confirmSx('green'), mt: 0.5 }}
+          >
+            Bag +25 slots ($2,000)
+          </Button>
         </DialogActions>
       </Dialog>
 
-      {/* ── Dump Bag Confirmation ── */}
+      {/* ── Use Item ── */}
+      <Dialog open={showUseItem} onClose={() => setShowUseItem(false)} maxWidth="xs" fullWidth PaperProps={{ sx: darkPaper }}>
+        <DialogTitle sx={titleSx}>🎒 Use Item</DialogTitle>
+        <DialogContent sx={{ pt: 1.5 }}>
+          {useItemError && <div style={{ padding: '8px 12px', marginBottom: '10px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.4)', borderRadius: '6px', color: '#fca5a5', fontFamily: 'Courier New, monospace', fontSize: '0.8rem' }}>⚠ {useItemError}</div>}
+          {game.items?.map(item => (
+            <StatLine key={item.id} style={{ marginBottom: 6 }}>
+              <span style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <StatKey>{item.emoji ?? ''} {item.name}</StatKey>
+                <span style={{ fontFamily: 'Courier New, monospace', fontSize: '0.68rem', color: '#64748b', fontWeight: 400 }}>
+                  {ITEM_CATALOG.find(c => c.id === item.id)?.description}
+                </span>
+              </span>
+              <Button
+                onClick={() => {
+                  try { activateItem(item.id); setUseItemError(null); setShowUseItem(false); }
+                  catch (e) { setUseItemError(e.message); }
+                }}
+                variant="contained"
+                size="small"
+                sx={{ ...confirmSx('purple'), ml: 1, whiteSpace: 'nowrap' }}
+              >
+                Use ×{item.qty}
+              </Button>
+            </StatLine>
+          ))}
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2.5 }}>
+          <Button onClick={() => setShowUseItem(false)} sx={cancelSx}>Close</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* ── Bulk Import ── */}
+      <Dialog open={showBulkImport} onClose={() => setShowBulkImport(false)} maxWidth="xs" fullWidth PaperProps={{ sx: darkPaper }}>
+        <DialogTitle sx={titleSx}>📦 Bulk Import</DialogTitle>
+        <DialogContent sx={{ pt: 1.5 }}>
+          {bulkError && <div style={{ padding: '8px 12px', marginBottom: '10px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.4)', borderRadius: '6px', color: '#fca5a5', fontFamily: 'Courier New, monospace', fontSize: '0.8rem' }}>⚠ {bulkError}</div>}
+          <Subtext>Move product at 30% off street price. Costs +2 heat and locks bulk deals for 3 days.</Subtext>
+          <div style={{ marginBottom: 8, fontFamily: 'Courier New, monospace', fontSize: '0.72rem', color: '#c084fc', letterSpacing: '0.08em' }}>Select drug:</div>
+          {DRUGS.map(drug => {
+            const available = game.stockLevels?.[game.location]?.[drug.id] ?? 0;
+            if (available === 0) return null;
+            const basePrice = getMarketPrice(drug.id, game.location, false, {
+              dailyMultipliers: game.priceMultipliers?.[game.location] ?? {},
+              eventEffects: game.activeEventEffects ?? {},
+            });
+            const discounted = Math.round(basePrice * 0.70);
+            return (
+              <div
+                key={drug.id}
+                onClick={() => setBulkDrug(drug)}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 10px', marginBottom: '4px',
+                  borderRadius: '6px', cursor: 'pointer',
+                  background: bulkDrug?.id === drug.id ? 'rgba(167,139,250,0.15)' : 'rgba(102,126,234,0.05)',
+                  border: `1px solid ${bulkDrug?.id === drug.id ? 'rgba(167,139,250,0.5)' : 'rgba(102,126,234,0.12)'}`,
+                }}
+              >
+                <span style={{ fontSize: '1rem' }}>{drug.emoji}</span>
+                <span style={{ flex: 1, fontFamily: 'Courier New, monospace', fontSize: '0.82rem', color: drug.color, fontWeight: 600 }}>{drug.name}</span>
+                <span style={{ fontFamily: 'Courier New, monospace', fontSize: '0.72rem', color: '#6ee7b7' }}>${discounted}</span>
+                <span style={{ fontFamily: 'Courier New, monospace', fontSize: '0.68rem', color: '#64748b' }}>({available} avail)</span>
+              </div>
+            );
+          })}
+          {bulkDrug && (
+            <TextField
+              type="number"
+              label="Quantity"
+              value={bulkQty}
+              onChange={e => setBulkQty(Math.max(1, parseInt(e.target.value) || 1))}
+              inputProps={{ min: 1, step: 5 }}
+              sx={{ ...darkTextField, mt: '12px' }}
+            />
+          )}
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2.5, gap: 1 }}>
+          <Button onClick={() => setShowBulkImport(false)} sx={cancelSx}>Cancel</Button>
+          <Button
+            disabled={!bulkDrug}
+            onClick={() => {
+              if (!bulkDrug) return;
+              const available = game.stockLevels?.[game.location]?.[bulkDrug.id] ?? 0;
+              const basePrice = getMarketPrice(bulkDrug.id, game.location, false, {
+                dailyMultipliers: game.priceMultipliers?.[game.location] ?? {},
+                eventEffects: game.activeEventEffects ?? {},
+              });
+              try {
+                bulkImport(bulkDrug.id, bulkDrug.name, bulkQty, basePrice, available);
+                setBulkError(null);
+                setShowBulkImport(false);
+              } catch (e) { setBulkError(e.message); }
+            }}
+            variant="contained"
+            sx={confirmSx('orange')}
+          >
+            Import {bulkQty} units
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* ── Dump Bag ── */}
       <Dialog open={showDump} onClose={() => setShowDump(false)} maxWidth="xs" fullWidth PaperProps={{ sx: darkPaper }}>
         <DialogTitle sx={titleSx}>⚠ Dump the Bag?</DialogTitle>
         <DialogContent sx={{ pt: 1.5 }}>
@@ -297,7 +531,7 @@ function Actions() {
             <span style={{ color: '#f87171', fontWeight: 600 }}>${game.debt.toLocaleString()}</span>
           </StatLine>
           <StatLine>
-            <StatKey>Daily Interest (5%)</StatKey>
+            <StatKey>Daily Interest ({interestRate}%)</StatKey>
             <span style={{ color: '#fb923c' }}>+${dailyInterest.toLocaleString()}/day</span>
           </StatLine>
           <StatLine style={{ border: '1px solid rgba(180,90,255,0.25)', background: 'rgba(180,90,255,0.07)' }}>
@@ -312,7 +546,9 @@ function Actions() {
           </StatLine>
           <StatLine>
             <StatKey>Projected Debt (day 60)</StatKey>
-            <span style={{ color: '#f87171' }}>${Math.round(game.debt * Math.pow(1.05, daysLeft)).toLocaleString()}</span>
+            <span style={{ color: '#f87171' }}>
+              ${Math.round(game.debt * Math.pow(1 + diff.rate, daysLeft)).toLocaleString()}
+            </span>
           </StatLine>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2.5 }}>
@@ -324,11 +560,7 @@ function Actions() {
       <Dialog open={showLoan} onClose={() => setShowLoan(false)} maxWidth="xs" fullWidth PaperProps={{ sx: darkPaper }}>
         <DialogTitle sx={titleSx}>{loanMode === 'take' ? '🦈 Take a Loan' : '💸 Pay Back Loan'}</DialogTitle>
         <DialogContent sx={{ pt: 1.5 }}>
-          {loanError && (
-            <div style={{ padding: '10px 12px', marginBottom: '12px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.4)', borderRadius: '6px', color: '#fca5a5', fontFamily: 'Courier New, monospace', fontSize: '0.8rem' }}>
-              ⚠ {loanError}
-            </div>
-          )}
+          <ErrorBox msg={loanError} />
           <StatLine>
             <StatKey>{loanMode === 'take' ? 'Current Debt' : 'Cash Available'}</StatKey>
             <span style={{ color: '#f87171' }}>
@@ -340,11 +572,11 @@ function Actions() {
             label="Amount"
             value={loanAmount}
             onChange={e => setLoanAmount(Math.max(1, parseInt(e.target.value) || 1))}
-            inputProps={{ min: 1, max: loanMode === 'take' ? 5000 : game.cash, step: 100 }}
+            inputProps={{ min: 1, max: loanMode === 'take' ? diff.loanCap : game.cash, step: 100 }}
             sx={{ ...darkTextField, mt: '16px' }}
           />
           <div style={{ textAlign: 'center', marginTop: 8, fontFamily: 'Courier New, monospace', fontSize: '0.72rem', color: '#64748b' }}>
-            {loanMode === 'take' ? 'Max $5,000 per loan' : `Max $${Math.min(game.cash, game.debt).toLocaleString()}`}
+            {loanMode === 'take' ? `Max $${diff.loanCap.toLocaleString()} per loan` : `Max $${Math.min(game.cash, game.debt).toLocaleString()}`}
           </div>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2.5, gap: 1 }}>
@@ -354,8 +586,115 @@ function Actions() {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* ── Tip-Off ── */}
+      <Dialog open={showTipOff} onClose={() => setShowTipOff(false)} maxWidth="xs" fullWidth PaperProps={{ sx: darkPaper }}>
+        <DialogTitle sx={titleSx}>🐀 Tip Off the Cops</DialogTitle>
+        <DialogContent sx={{ pt: 1.5 }}>
+          <ErrorBox msg={tipError} />
+          <Subtext>
+            Rat out the local rivals at <strong style={{ color: '#ede0ff' }}>{game.location}</strong>.
+            Costs ${TIP_OFF_COST.toLocaleString()} and makes this block hot for 3 days — but drops your heat by 2.
+          </Subtext>
+          <StatLine>
+            <StatKey>Cost</StatKey>
+            <span style={{ color: '#f87171' }}>$500</span>
+          </StatLine>
+          <StatLine>
+            <StatKey>Heat Reduction</StatKey>
+            <span style={{ color: '#6ee7b7' }}>−2 levels</span>
+          </StatLine>
+          <StatLine>
+            <StatKey>Location Heat Bonus</StatKey>
+            <span style={{ color: '#fb923c' }}>+2 for 3 days at {game.location}</span>
+          </StatLine>
+          <StatLine>
+            <StatKey>Cooldown After</StatKey>
+            <span style={{ color: '#8b95c9' }}>5 days</span>
+          </StatLine>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2.5, gap: 1 }}>
+          <Button onClick={() => setShowTipOff(false)} sx={cancelSx}>Cancel</Button>
+          <Button onClick={confirmTipOff} variant="contained" sx={confirmSx('orange')}>
+            Tip Them Off
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* ── Difficulty (day 1 only) ── */}
+      <Dialog open={showDifficulty} onClose={() => setShowDifficulty(false)} maxWidth="xs" fullWidth PaperProps={{ sx: darkPaper }}>
+        <DialogTitle sx={titleSx}>⚙ Difficulty</DialogTitle>
+        <DialogContent sx={{ pt: 1.5 }}>
+          <ErrorBox msg={diffError} />
+          <Subtext>Choose your run. This can only be changed before your first move.</Subtext>
+          <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+            {['easy', 'normal', 'hard'].map(level => (
+              <DiffButton
+                key={level}
+                active={game.difficulty === level ? 'true' : undefined}
+                onClick={() => confirmDifficulty(level)}
+              >
+                {level.toUpperCase()}
+              </DiffButton>
+            ))}
+          </div>
+          {[
+            { label: 'Interest / day', easy: '3%', normal: '5%', hard: '7%' },
+            { label: 'Loan cap',       easy: '$8,000', normal: '$5,000', hard: '$3,000' },
+            { label: 'Police heat',    easy: '4+',  normal: '3+',  hard: '2+' },
+            { label: 'Rival pressure', easy: 'Low', normal: 'Med', hard: 'High' },
+          ].map(row => (
+            <StatLine key={row.label}>
+              <StatKey>{row.label}</StatKey>
+              <span style={{ color: '#ede0ff', fontFamily: 'Courier New, monospace', fontSize: '0.78rem' }}>
+                <span style={{ color: '#6ee7b7' }}>{row.easy}</span>
+                {' · '}
+                <span style={{ color: '#a5b4fc' }}>{row.normal}</span>
+                {' · '}
+                <span style={{ color: '#f87171' }}>{row.hard}</span>
+              </span>
+            </StatLine>
+          ))}
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2.5 }}>
+          <Button onClick={() => setShowDifficulty(false)} sx={cancelSx}>Close</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* ── New Game ── */}
+      <Dialog open={showNewGame} onClose={() => setShowNewGame(false)} maxWidth="xs" fullWidth PaperProps={{ sx: darkPaper }}>
+        <DialogTitle sx={titleSx}>🔄 New Game</DialogTitle>
+        <DialogContent sx={{ pt: 1.5 }}>
+          <Subtext>Start fresh from Day 1. All progress will be lost.</Subtext>
+          <div style={{ marginBottom: 10, fontFamily: 'Courier New, monospace', fontSize: '0.72rem', color: '#c084fc', letterSpacing: '0.1em' }}>SELECT DIFFICULTY</div>
+          <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+            {['easy', 'normal', 'hard'].map(level => (
+              <DiffButton
+                key={level}
+                active={newGameDiff === level ? 'true' : undefined}
+                onClick={() => setNewGameDiff(level)}
+              >
+                {level.toUpperCase()}
+              </DiffButton>
+            ))}
+          </div>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2.5, gap: 1 }}>
+          <Button onClick={() => setShowNewGame(false)} sx={cancelSx}>Cancel</Button>
+          <Button
+            onClick={() => { resetGame(newGameDiff); setShowNewGame(false); }}
+            variant="contained"
+            sx={confirmSx('red')}
+          >
+            Start Over
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Terminal>
   );
 }
+
+// expose for Actions.js
+const TIP_OFF_COST = 500;
 
 export default Actions;

@@ -6,8 +6,9 @@ import LocalPoliceIcon from '@mui/icons-material/LocalPolice';
 import StarIcon from '@mui/icons-material/Star';
 import { useGame } from './GameContext';
 import { playGameOver } from '../utils/sounds';
+import { saveHighScore, loadHighScores } from '../gameState';
 
-const PRESTIGE_MULTIPLIER = 500;
+const PRESTIGE_MULTIPLIER = 200;
 
 function calcScore(game) {
   const netWorth = game.cash - game.debt;
@@ -117,13 +118,25 @@ function fmt(n) {
   return n < 0 ? `-$${abs}` : `$${abs}`;
 }
 
+const DIFF_RANK = { easy: 'E', normal: 'N', hard: 'H' };
+
 export default function GameOver() {
   const { game, resetGame } = useGame();
   const { netWorth, prestigeBonus, total } = calcScore(game);
   const won = total > 0 && !game.bankrupted;
   const bankrupt = game.bankrupted;
 
-  useEffect(() => { playGameOver(); }, []);
+  useEffect(() => {
+    playGameOver();
+    saveHighScore({
+      score: total,
+      date: new Date().toLocaleDateString(),
+      difficulty: game.difficulty ?? 'normal',
+      day: game.day,
+    });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const highScores = loadHighScores();
 
   const prestigeStars = Math.min(5, Math.round((game.prestige / 100) * 5));
 
@@ -176,6 +189,18 @@ export default function GameOver() {
               Level {game.wantedLevel}
             </span>
           </StatRow>
+          <StatRow>
+            <StatLabel>Difficulty</StatLabel>
+            <span style={{
+              color: game.difficulty === 'hard' ? '#ef4444' : game.difficulty === 'easy' ? '#10b981' : '#8b95c9',
+              textTransform: 'uppercase',
+              letterSpacing: '0.08em',
+              fontFamily: 'Courier New, monospace',
+              fontSize: '0.82rem',
+            }}>
+              {game.difficulty ?? 'normal'}
+            </span>
+          </StatRow>
 
           {game.stats && (
             <>
@@ -193,6 +218,26 @@ export default function GameOver() {
             </span>
           </ScoreRow>
         </StatGrid>
+
+        {highScores.length > 0 && (
+          <div style={{ width: '100%' }}>
+            <div style={{ fontFamily: 'Courier New, monospace', fontSize: '0.72rem', color: '#c084fc', letterSpacing: '0.18em', textTransform: 'uppercase', marginBottom: '8px', opacity: 0.8 }}>
+              — Hall of Fame —
+            </div>
+            {highScores.map((entry, i) => (
+              <StatRow key={i} style={{ opacity: entry.score === total && entry.date === new Date().toLocaleDateString() ? 1 : 0.7 }}>
+                <StatLabel style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ color: i === 0 ? '#D4AF37' : '#64748b', fontWeight: i === 0 ? 700 : 400 }}>#{i + 1}</span>
+                  <span style={{ color: '#64748b', fontSize: '0.68rem' }}>{entry.date}</span>
+                  <span style={{ fontSize: '0.65rem', color: entry.difficulty === 'hard' ? '#ef4444' : entry.difficulty === 'easy' ? '#10b981' : '#8b95c9', border: '1px solid currentColor', borderRadius: '3px', padding: '0 3px' }}>{DIFF_RANK[entry.difficulty] ?? 'N'}</span>
+                </StatLabel>
+                <span style={{ color: entry.score >= 0 ? '#D4AF37' : '#ef4444', fontWeight: 600 }}>
+                  {entry.score >= 0 ? '$' : '-$'}{Math.abs(entry.score).toLocaleString()}
+                </span>
+              </StatRow>
+            ))}
+          </div>
+        )}
 
         <PlayAgainButton onClick={resetGame}>
           ▶ Play Again

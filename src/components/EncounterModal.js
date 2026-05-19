@@ -65,9 +65,10 @@ const Divider = styled('div')({
 
 const ChoiceButton = styled('button')(({ variant }) => {
   const colors = {
-    pay:  { color: '#D4AF37', bg: 'rgba(212,175,55,0.08)',  border: 'rgba(212,175,55,0.4)' },
-    run:  { color: '#10b981', bg: 'rgba(16,185,129,0.08)', border: 'rgba(16,185,129,0.4)' },
-    dump: { color: '#ef4444', bg: 'rgba(239,68,68,0.08)',  border: 'rgba(239,68,68,0.4)' },
+    pay:   { color: '#D4AF37', bg: 'rgba(212,175,55,0.08)',  border: 'rgba(212,175,55,0.4)' },
+    run:   { color: '#10b981', bg: 'rgba(16,185,129,0.08)', border: 'rgba(16,185,129,0.4)' },
+    dump:  { color: '#ef4444', bg: 'rgba(239,68,68,0.08)',  border: 'rgba(239,68,68,0.4)' },
+    bribe: { color: '#c084fc', bg: 'rgba(192,132,252,0.08)', border: 'rgba(192,132,252,0.4)' },
   };
   const c = colors[variant] || colors.pay;
   return {
@@ -140,6 +141,13 @@ export default function EncounterModal() {
           📦 Dump the Bag
           <Sub>Drop everything, heat -2</Sub>
         </ChoiceButton>
+
+        {game.cash >= enc.fine * 2 && (
+          <ChoiceButton variant="bribe" onClick={() => resolveEncounter('bribe')}>
+            💜 Bribe the Officer — ${(enc.fine * 2).toLocaleString()}
+            <Sub>Pay 2× fine, walk clean — heat -2</Sub>
+          </ChoiceButton>
+        )}
       </Panel>
     </Overlay>
   );
