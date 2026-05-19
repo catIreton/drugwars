@@ -253,6 +253,8 @@ function Market() {
     prestige: game.prestige ?? 0,
     rivalLevel,
     flashDeals: locationFlashDeals,
+    gangWar: !!((game.gangWars ?? {})[game.location]),
+    wantedPosterActive: game.wantedPosterActive ?? false,
   };
 
   const handleRowClick = (drug) => {

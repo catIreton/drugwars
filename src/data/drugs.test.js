@@ -101,8 +101,9 @@ describe('getAvailableQuantity', () => {
 
 describe('getMarketPrice — new options', () => {
   test('prestige sell bonus raises sell price at prestige >= 50', () => {
-    const high = getMarketPrice('weed', 'Westport', true, { prestige: 50 });
-    const base = getMarketPrice('weed', 'Westport', true, { prestige: 0 });
+    // Use Downtown where weed sellMult (0.9) leaves headroom below the arbitrage cap
+    const high = getMarketPrice('weed', 'Downtown', true, { prestige: 50 });
+    const base = getMarketPrice('weed', 'Downtown', true, { prestige: 0 });
     expect(high).toBeGreaterThan(base);
   });
 
@@ -125,8 +126,9 @@ describe('getMarketPrice — new options', () => {
   });
 
   test('flash sell deal raises sell price', () => {
-    const deal   = getMarketPrice('weed', 'Westport', true, { flashDeals: { weed: { type: 'sell', mult: 1.75, expiresDay: 99 } } });
-    const noDeal = getMarketPrice('weed', 'Westport', true, {});
+    // Use Downtown where weed sellMult (0.9) leaves headroom below the arbitrage cap
+    const deal   = getMarketPrice('weed', 'Downtown', true, { flashDeals: { weed: { type: 'sell', mult: 1.75, expiresDay: 99 } } });
+    const noDeal = getMarketPrice('weed', 'Downtown', true, {});
     expect(deal).toBeGreaterThan(noDeal);
   });
 });

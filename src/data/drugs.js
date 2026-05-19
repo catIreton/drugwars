@@ -315,6 +315,8 @@ export function getMarketPrice(drugId, location, isSelling = false, options = {}
     rivalLevel = 0,
     flashDeals = {},
     grade = 'standard',
+    gangWar = false,
+    wantedPosterActive = false,
   } = options;
 
   const locMult   = isSelling ? market.drugs[drugId].sellMultiplier : market.drugs[drugId].buyMultiplier;
@@ -349,6 +351,16 @@ export function getMarketPrice(drugId, location, isSelling = false, options = {}
     price = isSelling ? Math.round(price * 0.6) : Math.round(price * 1.35);
   } else if (wantedLevel >= 3) {
     price = isSelling ? Math.round(price * 0.82) : Math.round(price * 1.18);
+  }
+
+  // Wanted poster: recognized by vendors even after heat drops (extra penalty on top)
+  if (wantedPosterActive && wantedLevel < 5) {
+    price = isSelling ? Math.round(price * 0.75) : Math.round(price * 1.2);
+  }
+
+  // Gang war: prices spike — high-risk / high-reward turf war conditions
+  if (gangWar) {
+    price = Math.round(price * 1.2);
   }
 
   // Prestige sell bonus: reputation earns you better sell prices

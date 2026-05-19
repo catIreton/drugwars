@@ -116,6 +116,47 @@ function buildTickerItems(game) {
     }
   }
 
+  // Wanted poster — recognized even after heat drops
+  if (game.wantedPosterActive) {
+    items.push('🪧 WANTED: Your face is on posters — vendors charging you extra and morale is down');
+  }
+
+  // DEA heat buildup warning
+  const deaHeat = game.deaHeat ?? 0;
+  if (deaHeat >= 4) {
+    items.push('🏛 DEA ALERT: Federal task force closing in — your big transactions have been flagged');
+  } else if (deaHeat >= 2.5) {
+    items.push('🏛 INTEL: Feds taking interest in large deals around KC — keep transactions small');
+  }
+
+  // Snitch — subtle hints only
+  if (game.snitchLeaked) {
+    items.push('👂 WORD ON THE STREET: Someone in your crew has been talking out of school');
+    items.push(`⚠️ STAY AWAY: ${game.snitchLeaked} is not safe right now`);
+  }
+
+  // Gang war at current location
+  if ((game.gangWars ?? {})[game.location]) {
+    items.push(`💥 TURF WAR: ${game.location} caught between rival crews — prices spiked, police swarming`);
+  }
+
+  // Rival alliances
+  const alliancePartner = (game.rivalAlliances ?? {})[game.location];
+  if (alliancePartner) {
+    items.push(`🤝 ALLIANCE: ${game.location} and ${alliancePartner} crews have merged — double lockdown in effect`);
+  }
+
+  // Pending retaliation warning
+  if (game.pendingRetaliation) {
+    items.push('⚠️ RETALIATION INCOMING: Rivals are not happy about your last move — expect trouble on the road');
+  }
+
+  // Rival takedown headline
+  const td = game.lastTakedown;
+  if (td && game.day - td.day <= 2) {
+    items.push(`📰 STREET NEWS: ${td.location} crew got taken out — power vacuum opening up`);
+  }
+
   // Rival activity at current location
   const rivalLevel = game.rivals?.[game.location]?.level ?? 0;
   if (rivalLevel >= 2) {

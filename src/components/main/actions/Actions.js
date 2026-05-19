@@ -6,8 +6,7 @@ import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
 import Button from '@mui/material/Button';
 import TextField from '@mui/material/TextField';
-import { useGame } from '../../GameContext';
-import { DIFF_CONFIG } from '../../GameContext';
+import { useGame, DIFF_CONFIG, TAKEDOWN_COSTS } from '../../GameContext';
 import { ITEM_CATALOG } from '../../../data/items';
 import { DRUGS, getMarketPrice } from '../../../data/drugs';
 
@@ -211,6 +210,7 @@ function Actions() {
     hireCrew, fireCrew, upgradeBag,
     tipOff, setDifficulty, resetGame,
     buyConsumable, useItem: activateItem, bulkImport,
+    layLow, rivalTakedown,
   } = useGame();
 
   const [showDump,       setShowDump]       = useState(false);
@@ -221,8 +221,13 @@ function Actions() {
   const [showDifficulty, setShowDifficulty] = useState(false);
   const [showNewGame,    setShowNewGame]    = useState(false);
   const [showUseItem,    setShowUseItem]    = useState(false);
-  const [showBulkImport, setShowBulkImport] = useState(false);
-  const [storeError,     setStoreError]     = useState(null);
+  const [showBulkImport,    setShowBulkImport]    = useState(false);
+  const [showLayLow,        setShowLayLow]        = useState(false);
+  const [showRivalTakedown, setShowRivalTakedown] = useState(false);
+  const [takedownLocation,  setTakedownLocation]  = useState(null);
+  const [takedownError,     setTakedownError]     = useState(null);
+  const [layLowError,       setLayLowError]       = useState(null);
+  const [storeError,        setStoreError]        = useState(null);
   const [loanAmount,     setLoanAmount]     = useState(1000);
   const [loanError,      setLoanError]      = useState(null);
   const [loanMode,       setLoanMode]       = useState('take');
@@ -295,6 +300,18 @@ function Actions() {
       {(game.items?.length ?? 0) > 0 && (
         <CmdButton onClick={() => { setUseItemError(null); setShowUseItem(true); }}>
           <Prompt>$</Prompt> use_item
+        </CmdButton>
+      )}
+      <CmdButton
+        onClick={() => { setLayLowError(null); setShowLayLow(true); }}
+        disabled={(game.layLowCooldown ?? 0) > 0 || game.day + 2 > 60}
+        title={(game.layLowCooldown ?? 0) > 0 ? `Cooldown: ${game.layLowCooldown} days` : undefined}
+      >
+        <Prompt>$</Prompt> lay_low{(game.layLowCooldown ?? 0) > 0 ? ` [${game.layLowCooldown}d]` : ''}
+      </CmdButton>
+      {Object.values(game.rivals ?? {}).some(r => r.level >= 1) && (
+        <CmdButton onClick={() => { setTakedownError(null); setTakedownLocation(null); setShowRivalTakedown(true); }}>
+          <Prompt>$</Prompt> rival_takedown
         </CmdButton>
       )}
 
@@ -658,6 +675,93 @@ function Actions() {
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2.5 }}>
           <Button onClick={() => setShowDifficulty(false)} sx={cancelSx}>Close</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* ── Lay Low ── */}
+      <Dialog open={showLayLow} onClose={() => setShowLayLow(false)} maxWidth="xs" fullWidth PaperProps={{ sx: darkPaper }}>
+        <DialogTitle sx={titleSx}>🏠 Lay Low</DialogTitle>
+        <DialogContent sx={{ pt: 1.5 }}>
+          {layLowError && <div style={{ padding: '8px 12px', marginBottom: '10px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.4)', borderRadius: '6px', color: '#fca5a5', fontFamily: 'Courier New, monospace', fontSize: '0.8rem' }}>⚠ {layLowError}</div>}
+          <Subtext>
+            Hole up for 2 days. No market access — just waiting out the heat.<br />
+            Costs 2× daily crew upkeep. Surveillance at <strong style={{ color: '#ede0ff' }}>{game.location}</strong> resets.
+          </Subtext>
+          <StatLine><StatKey>Duration</StatKey><span style={{ color: '#a5b4fc' }}>2 days (day {game.day} → {game.day + 2})</span></StatLine>
+          <StatLine><StatKey>Heat Reduction</StatKey><span style={{ color: '#6ee7b7' }}>−3 levels</span></StatLine>
+          <StatLine><StatKey>Crew Upkeep</StatKey><span style={{ color: '#fb923c' }}>−${(game.crew * 150 * 2).toLocaleString()}</span></StatLine>
+          <StatLine><StatKey>Surveillance Reset</StatKey><span style={{ color: '#6ee7b7' }}>{game.location}</span></StatLine>
+          <StatLine><StatKey>Cooldown After</StatKey><span style={{ color: '#8b95c9' }}>5 days</span></StatLine>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2.5, gap: 1 }}>
+          <Button onClick={() => setShowLayLow(false)} sx={cancelSx}>Cancel</Button>
+          <Button
+            onClick={() => {
+              try { layLow(); setShowLayLow(false); }
+              catch (e) { setLayLowError(e.message); }
+            }}
+            variant="contained"
+            sx={confirmSx('purple')}
+          >
+            Lay Low
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* ── Rival Takedown ── */}
+      <Dialog open={showRivalTakedown} onClose={() => setShowRivalTakedown(false)} maxWidth="xs" fullWidth PaperProps={{ sx: darkPaper }}>
+        <DialogTitle sx={titleSx}>🎯 Rival Takedown</DialogTitle>
+        <DialogContent sx={{ pt: 1.5 }}>
+          {takedownError && <div style={{ padding: '8px 12px', marginBottom: '10px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.4)', borderRadius: '6px', color: '#fca5a5', fontFamily: 'Courier New, monospace', fontSize: '0.8rem' }}>⚠ {takedownError}</div>}
+          <Subtext>Pay a bounty to knock a rival down 2 levels. Earns +10 prestige and a ticker headline.</Subtext>
+          <div style={{ marginBottom: 8, fontFamily: 'Courier New, monospace', fontSize: '0.72rem', color: '#c084fc', letterSpacing: '0.08em' }}>Select target:</div>
+          {Object.entries(game.rivals ?? {})
+            .filter(([, r]) => r.level >= 1)
+            .sort(([, a], [, b]) => b.level - a.level)
+            .map(([loc, rival]) => {
+              const cost = TAKEDOWN_COSTS[rival.level] ?? 2000;
+              const isAllied = !!(game.rivalAlliances ?? {})[loc];
+              return (
+                <div
+                  key={loc}
+                  onClick={() => setTakedownLocation(loc)}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: '8px', padding: '7px 10px', marginBottom: '4px',
+                    borderRadius: '6px', cursor: 'pointer',
+                    background: takedownLocation === loc ? 'rgba(167,139,250,0.15)' : 'rgba(102,126,234,0.05)',
+                    border: `1px solid ${takedownLocation === loc ? 'rgba(167,139,250,0.5)' : 'rgba(102,126,234,0.12)'}`,
+                  }}
+                >
+                  <span style={{ flex: 1, fontFamily: 'Courier New, monospace', fontSize: '0.82rem', color: rival.level >= 3 ? '#f87171' : '#fb923c', fontWeight: 600 }}>
+                    {loc}{isAllied ? ' 🤝' : ''}
+                  </span>
+                  <span style={{ fontFamily: 'Courier New, monospace', fontSize: '0.72rem', color: '#64748b' }}>
+                    Level {rival.level}
+                  </span>
+                  <span style={{ fontFamily: 'Courier New, monospace', fontSize: '0.72rem', color: game.cash >= cost ? '#6ee7b7' : '#f87171', fontWeight: 600 }}>
+                    ${cost.toLocaleString()}
+                  </span>
+                </div>
+              );
+            })}
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2.5, gap: 1 }}>
+          <Button onClick={() => setShowRivalTakedown(false)} sx={cancelSx}>Cancel</Button>
+          <Button
+            disabled={!takedownLocation || game.cash < (TAKEDOWN_COSTS[(game.rivals ?? {})[takedownLocation]?.level] ?? 99999)}
+            onClick={() => {
+              if (!takedownLocation) return;
+              try {
+                rivalTakedown(takedownLocation);
+                setTakedownError(null);
+                setShowRivalTakedown(false);
+              } catch (e) { setTakedownError(e.message); }
+            }}
+            variant="contained"
+            sx={confirmSx('red')}
+          >
+            Execute Takedown
+          </Button>
         </DialogActions>
       </Dialog>
 

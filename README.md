@@ -204,33 +204,19 @@ public/
 
 ---
 
-## Phase 2 — Future Development
-
-### Persistence & Infrastructure
-- [ ] **Cloud save** — persist game state to a backend (Firebase or similar) for cross-device play
-- [ ] **Leaderboard** — top scores stored server-side; visible at game over
-- [ ] **Multiple save slots** — 2–3 simultaneous runs
-- [ ] **PWA / offline support** — service worker + manifest so the game installs on mobile and works without a signal
-- [ ] **CI pipeline** — GitHub Actions running `npm test` + build check on every push
-
-### Character Screen
-- [ ] **Dealer profile** — named character with a backstory, portrait/avatar, and origin neighborhood
-- [ ] **Equipment slots** — visual loadout showing active items (burner phone, scanner, stash house key) and bag tier
-- [ ] **Rep & history** — lifetime stats panel: total runs, best score, biggest single trade, times busted, rival takedowns
-- [ ] **Unlockable titles** — earn street titles based on playstyle (e.g. *The Pharmacist*, *Westport Ghost*, *JOCO Kingpin*)
-- [ ] **Crew roster** — named crew members with individual traits (lookout bonus, negotiate bonus, escape bonus)
+## Phase 2 — Game Improvements *(current)*
 
 ### Heat & Rival Escalation
-- [ ] **Surveillance buildup** — visiting the same location repeatedly raises a hidden "surveillance score"; once it peaks, an undercover sting event fires instead of a normal encounter
-- [ ] **Undercover cop events** — plain-clothes officer poses as a buyer; accepting the deal triggers an instant bust with no run/dump option
-- [ ] **Wanted poster tier** — at heat 5 you're recognized on arrival; prices tank, crew morale drops, and NPCs refuse to deal until you cool off for 3+ days
-- [ ] **Snitch in the crew** — rare event where a crew member flips; costs heat +2 and leaks your next location to police, telegraphed only by subtle ticker hints beforehand
-- [ ] **DEA task force** — separate federal heat bar that builds slowly from large transactions; at max, a raid event fires regardless of local heat level
-- [ ] **Safe house lay-low** — spend 2 days holed up (no market access) to shed 3 heat and reset surveillance score; costs daily upkeep but no travel day deducted
-- [ ] **Rival retaliation** — bulk-importing on a rival's turf triggers a retaliatory event next travel: stash robbed, crew member injured, or forced price dump
-- [ ] **Rival alliance** — two high-level rivals merge turf at day 30+; combined lockdown covers both neighborhoods until one is unseated
-- [ ] **Gang war chaos** — when two rivals clash (both level 3+ in adjacent neighborhoods), a 2-day "turf war" event creates high-risk / high-reward market conditions: prices spike but police swarm
-- [ ] **Rival takedown** — pay a bounty ($3,000–$8,000 scaling with level) to permanently reduce a rival by 2 levels; adds a prestige bonus and ticker headline
+- [x] **Surveillance buildup** — visiting the same location repeatedly raises a hidden "surveillance score"; once it peaks, an undercover sting event fires instead of a normal encounter
+- [x] **Undercover cop events** — plain-clothes officer poses as a buyer; accepting the deal triggers an instant bust with no run/dump option
+- [x] **Wanted poster tier** — at heat 5 you're recognized on arrival; prices tank, crew morale drops, and NPCs refuse to deal until you cool off for 3+ days
+- [x] **Snitch in the crew** — rare event where a crew member flips; costs heat +2 and leaks your next location to police, telegraphed only by subtle ticker hints beforehand
+- [x] **DEA task force** — separate federal heat bar that builds slowly from large transactions; at max, a raid event fires regardless of local heat level
+- [x] **Safe house lay-low** — spend 2 days holed up (no market access) to shed 3 heat and reset surveillance score; costs daily upkeep but no travel day deducted
+- [x] **Rival retaliation** — bulk-importing on a rival's turf triggers a retaliatory event next travel: stash robbed, crew member injured, or forced price dump
+- [x] **Rival alliance** — two high-level rivals merge turf at day 30+; combined lockdown covers both neighborhoods until one is unseated
+- [x] **Gang war chaos** — when two rivals clash (both level 3+ in adjacent neighborhoods), a 2-day "turf war" event creates high-risk / high-reward market conditions: prices spike but police swarm
+- [x] **Rival takedown** — pay a bounty ($3,000–$8,000 scaling with level) to permanently reduce a rival by 2 levels; adds a prestige bonus and ticker headline
 
 ### Loan Shark & Debt Consequences
 - [ ] **Tiered lenders** — three borrow sources with escalating risk: *Bank* (3% interest, $2k cap, no consequences), *Street Lender* (8% interest, $5k cap, repo risk), *Loan Shark* (15% daily interest, $10k cap, violent enforcement)
@@ -272,10 +258,6 @@ public/
 - [ ] **Underground fight nights** — Raytown / Martin City; bet crew members for cash, risk injury
 - [ ] **Memorabilia fence** — during Chiefs or World Cup event days, offload stolen merch for quick flat-rate cash with no drug heat
 
-### Social
-- [ ] **Async rivals** — other players' completed run stats populate as named rival dealers in your game; their turf patterns reflect how they actually played
-- [ ] **Run replay** — after game over, watch a condensed timeline of your 60 days on the travel map
-
 ### KC 2026 Calendar & Real Events
 - [ ] **Game-day planner** — 60-day grid tab showing color-coded event icons so players can route strategically
 - [ ] **World Cup 2026** — KC host-city match days baked into the calendar; Downtown and Midtown see 2–3× demand and maximum heat during match days; "stadium scalping" side hustle unlocks
@@ -293,17 +275,39 @@ public/
 - [ ] **Husky + lint-staged** — run ESLint and tests on staged files before every commit
 - [ ] **Bundle analysis** — `vite-bundle-visualizer` to audit what's eating bundle size after the CRA migration
 
-### Monitoring & Observability
-- [ ] **Sentry** — capture runtime errors and unhandled rejections from real players without needing repro steps
-- [ ] **Web Vitals** — report LCP, CLS, FID; flag regressions before deploy
-- [ ] **Privacy-friendly analytics** — Plausible or Fathom to track active sessions and game-over funnels without GDPR baggage
-
 ### Polish & Quality
 - [ ] **Error boundaries** — catch render crashes gracefully instead of white-screening
 - [ ] **Code splitting** — lazy-load the game view to shrink the initial bundle
 - [ ] **E2E tests** — Playwright smoke test covering the core buy → travel → sell loop
 - [ ] **Accessibility** — keyboard navigation and ARIA labels on the market table and dialogs
 - [ ] **Mobile gestures** — swipe between tabs on small screens; haptic feedback on buy/sell confirmation
+
+---
+
+## Phase 3 — Future Development
+
+### Persistence & Infrastructure
+- [ ] **Cloud save** — persist game state to a backend (Firebase or similar) for cross-device play
+- [ ] **Leaderboard** — top scores stored server-side; visible at game over
+- [ ] **Multiple save slots** — 2–3 simultaneous runs
+- [ ] **PWA / offline support** — service worker + manifest so the game installs on mobile and works without a signal
+- [ ] **CI pipeline** — GitHub Actions running `npm test` + build check on every push
+
+### Character Screen
+- [ ] **Dealer profile** — named character with a backstory, portrait/avatar, and origin neighborhood
+- [ ] **Equipment slots** — visual loadout showing active items (burner phone, scanner, stash house key) and bag tier
+- [ ] **Rep & history** — lifetime stats panel: total runs, best score, biggest single trade, times busted, rival takedowns
+- [ ] **Unlockable titles** — earn street titles based on playstyle (e.g. *The Pharmacist*, *Westport Ghost*, *JOCO Kingpin*)
+- [ ] **Crew roster** — named crew members with individual traits (lookout bonus, negotiate bonus, escape bonus)
+
+### Social
+- [ ] **Async rivals** — other players' completed run stats populate as named rival dealers in your game; their turf patterns reflect how they actually played
+- [ ] **Run replay** — after game over, watch a condensed timeline of your 60 days on the travel map
+
+### Monitoring & Observability
+- [ ] **Sentry** — capture runtime errors and unhandled rejections from real players without needing repro steps
+- [ ] **Web Vitals** — report LCP, CLS, FID; flag regressions before deploy
+- [ ] **Privacy-friendly analytics** — Plausible or Fathom to track active sessions and game-over funnels without GDPR baggage
 
 ---
 

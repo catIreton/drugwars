@@ -6,7 +6,7 @@ import * as ROUTES from '../../constants/routes';
 const StubMain = () => <div data-testid="main-view" />;
 
 const buildRouter = (initialPath) => (
-  <MemoryRouter initialEntries={[initialPath]}>
+  <MemoryRouter initialEntries={[initialPath]} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
     <Routes>
       <Route path={ROUTES.HOME} element={<StubMain />} />
       <Route path={ROUTES.MAIN} element={<StubMain />} />

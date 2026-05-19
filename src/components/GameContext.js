@@ -11,6 +11,26 @@ export const DIFF_CONFIG = {
   hard:   { rate: 0.07, loanCap: 3000, encounterThreshold: 2, maxRivalLevel: 3 },
 };
 
+export const ADJACENT_LOCATIONS = {
+  'Northtown':    ['Downtown', 'Independence'],
+  'Plaza':        ['Westport', 'Midtown'],
+  'Downtown':     ['Northtown', 'Westport', 'Midtown', 'Crossroads'],
+  'Westport':     ['Plaza', 'Downtown', 'JOCO'],
+  'Brookside':    ['Plaza', 'Midtown', 'Martin City'],
+  'Martin City':  ['Brookside', 'Independence', 'Lenexa'],
+  'Independence': ['Northtown', 'Downtown', 'Martin City', 'Raytown'],
+  'JOCO':         ['Westport', 'Lenexa'],
+  'Crossroads':   ['Downtown', 'Midtown'],
+  'Midtown':      ['Plaza', 'Downtown', 'Crossroads', 'Brookside'],
+  'Raytown':      ['Independence', 'Martin City'],
+  'Lenexa':       ['JOCO', 'Martin City'],
+};
+
+export const TAKEDOWN_COSTS = { 1: 2000, 2: 3500, 3: 5000, 4: 8000 };
+const LAY_LOW_DAYS    = 2;
+const LAY_LOW_HEAT    = 3;
+const LAY_LOW_COOLDOWN = 5;
+
 function withAchievements(next) {
   const newAchievements = checkNewAchievements(next);
   if (newAchievements.length === 0) return next;
@@ -59,6 +79,17 @@ function migrateSave(saved) {
   // Add missing top-level fields
   if (state.scannerActive === undefined) state = { ...state, scannerActive: false };
   if (state.bulkImportCooldown === undefined) state = { ...state, bulkImportCooldown: 0 };
+  if (state.surveillanceScores === undefined) state = { ...state, surveillanceScores: {} };
+  if (state.deaHeat === undefined) state = { ...state, deaHeat: 0 };
+  if (state.pendingRetaliation === undefined) state = { ...state, pendingRetaliation: null };
+  if (state.rivalAlliances === undefined) state = { ...state, rivalAlliances: {} };
+  if (state.gangWars === undefined) state = { ...state, gangWars: {} };
+  if (state.wantedPosterActive === undefined) state = { ...state, wantedPosterActive: false };
+  if (state.wantedPosterCooloffStart === undefined) state = { ...state, wantedPosterCooloffStart: null };
+  if (state.snitchLeaked === undefined) state = { ...state, snitchLeaked: null };
+  if (state.snitchEndDay === undefined) state = { ...state, snitchEndDay: 0 };
+  if (state.layLowCooldown === undefined) state = { ...state, layLowCooldown: 0 };
+  if (state.lastTakedown === undefined) state = { ...state, lastTakedown: null };
 
   return state;
 }
@@ -134,9 +165,48 @@ export function GameProvider({ children }) {
     const newWeather = WEATHER_OPTIONS[Math.floor(Math.random() * WEATHER_OPTIONS.length)];
 
     const heatDelta = activeEventEffects.heat ?? 0;
-    const newWanted = Math.max(0, Math.min(5, game.wantedLevel - 1 + heatDelta));
 
-    // ── Gang turf wars: escalate rival level on revisits, decay on absence ──
+    // ── Snitch ────────────────────────────────────────────────────────────────
+    const prevSnitchLeaked = game.snitchLeaked ?? null;
+    const prevSnitchEndDay = game.snitchEndDay ?? 0;
+    let newSnitchLeaked = newDay > prevSnitchEndDay ? null : prevSnitchLeaked;
+    let newSnitchEndDay = newDay > prevSnitchEndDay ? 0 : prevSnitchEndDay;
+    let snitchHeatBonus = 0;
+    if ((game.crew ?? 0) > 0 && !newSnitchLeaked && Math.random() < Math.min(0.15, game.crew * 0.03)) {
+      const otherLocs = Object.keys(LOCATION_MARKETS).filter(l => l !== locationName);
+      newSnitchLeaked = otherLocs[Math.floor(Math.random() * otherLocs.length)];
+      newSnitchEndDay = newDay + 5;
+      snitchHeatBonus = 2;
+    }
+    // Traveling to the leaked location guarantees an encounter; clear the snitch
+    const isSnitchTrip = prevSnitchLeaked !== null
+      && prevSnitchLeaked === locationName
+      && newDay <= prevSnitchEndDay;
+    if (isSnitchTrip) {
+      newSnitchLeaked = null;
+      newSnitchEndDay = 0;
+    }
+
+    const newWanted = Math.max(0, Math.min(5, game.wantedLevel - 1 + heatDelta + snitchHeatBonus));
+
+    // ── Wanted poster ─────────────────────────────────────────────────────────
+    let wantedPosterActive = game.wantedPosterActive ?? false;
+    let wantedPosterCooloffStart = game.wantedPosterCooloffStart ?? null;
+    if (newWanted >= 5) {
+      wantedPosterActive = true;
+      wantedPosterCooloffStart = null;
+    } else if (newWanted < 3 && wantedPosterActive) {
+      if (wantedPosterCooloffStart === null) {
+        wantedPosterCooloffStart = newDay;
+      } else if (newDay - wantedPosterCooloffStart >= 3) {
+        wantedPosterActive = false;
+        wantedPosterCooloffStart = null;
+      }
+    } else if (newWanted >= 3) {
+      wantedPosterCooloffStart = null;
+    }
+
+    // ── Rival escalation ─────────────────────────────────────────────────────
     const prevRival      = (game.rivals ?? {})[locationName] ?? { level: 0, lastVisitDay: 0 };
     const daysSinceVisit = prevRival.lastVisitDay > 0 ? newDay - prevRival.lastVisitDay : Infinity;
     let newRivalLevel;
@@ -149,6 +219,23 @@ export function GameProvider({ children }) {
       newRivalLevel = Math.max(0, prevRival.level - decay);
       if (Math.random() < 0.3) newRivalLevel = Math.min(diff.maxRivalLevel, newRivalLevel + 1);
     }
+
+    // ── Surveillance buildup ──────────────────────────────────────────────────
+    const prevSurveillance = game.surveillanceScores ?? {};
+    const isSting = (prevSurveillance[locationName] ?? 0) >= 5;
+    const newSurveillance = {};
+    for (const loc of Object.keys(LOCATION_MARKETS)) {
+      if (loc === locationName) {
+        newSurveillance[loc] = isSting ? 0 : Math.min(5, (prevSurveillance[loc] ?? 0) + 1);
+      } else {
+        newSurveillance[loc] = Math.max(0, (prevSurveillance[loc] ?? 0) - 0.5);
+      }
+    }
+
+    // ── DEA heat decay ────────────────────────────────────────────────────────
+    const prevDeaHeat = game.deaHeat ?? 0;
+    const isDeaRaid   = prevDeaHeat >= 5;
+    const newDeaHeat  = isDeaRaid ? 0 : Math.max(0, prevDeaHeat - 0.2);
 
     // Flash deals: expire old, maybe add new
     const currentFlash = game.flashDeals ?? {};
@@ -179,14 +266,69 @@ export function GameProvider({ children }) {
       Object.entries(game.locationHeatBonus ?? {}).filter(([, v]) => v.expiresDay >= newDay)
     );
 
-    const locBonus       = cleanHeatBonus[locationName]?.amount ?? 0;
-    const effectiveHeat  = Math.min(5, game.wantedLevel + locBonus);
-    const threshold      = diff.encounterThreshold;
+    const locBonus        = cleanHeatBonus[locationName]?.amount ?? 0;
+    const effectiveHeat   = Math.min(5, game.wantedLevel + locBonus);
+    const threshold       = diff.encounterThreshold;
     const encounterChance = Math.max(0, (effectiveHeat - threshold + 1) * 0.22);
-    const hasEncounter   = effectiveHeat >= threshold && Math.random() < encounterChance;
-    const fine           = hasEncounter ? Math.round(effectiveHeat * 400 + Math.random() * 400) : 0;
+    const hasNormalEncounter = effectiveHeat >= threshold && Math.random() < encounterChance;
 
-    const upkeep         = game.crew * 150;
+    // Priority: DEA raid > undercover sting > snitch trip > normal
+    let encounterType = null;
+    let fine = 0;
+    if (isDeaRaid) {
+      encounterType = 'dea';
+      fine = 3000 + Math.round(Math.random() * 2000);
+    } else if (isSting) {
+      encounterType = 'sting';
+      fine = Math.round(newDay * 60 + 400);
+    } else if (isSnitchTrip || hasNormalEncounter) {
+      encounterType = 'normal';
+      fine = Math.round(effectiveHeat * 400 + Math.random() * 400);
+    }
+
+    // ── Gang war detection ─────────────────────────────────────────────────────
+    const newGangWars = {};
+    for (const [loc, endDay] of Object.entries(game.gangWars ?? {})) {
+      if (endDay >= newDay) newGangWars[loc] = endDay;
+    }
+    const neighbors = ADJACENT_LOCATIONS[locationName] ?? [];
+    for (const neighbor of neighbors) {
+      const neighborLevel = game.rivals?.[neighbor]?.level ?? 0;
+      if (neighborLevel >= 3 && newRivalLevel >= 3 && !newGangWars[locationName]) {
+        newGangWars[locationName] = newDay + 2;
+        newGangWars[neighbor]     = newDay + 2;
+      }
+    }
+    const gangWarActive = !!newGangWars[locationName];
+
+    // ── Rival alliance formation (day 30+) ────────────────────────────────────
+    const projectedRivals = {
+      ...(game.rivals ?? {}),
+      [locationName]: { level: newRivalLevel, lastVisitDay: newDay },
+    };
+    const newRivalAlliances = { ...(game.rivalAlliances ?? {}) };
+    if (newDay >= 30) {
+      for (const [loc1, adj] of Object.entries(ADJACENT_LOCATIONS)) {
+        for (const loc2 of adj) {
+          const l1 = projectedRivals[loc1]?.level ?? 0;
+          const l2 = projectedRivals[loc2]?.level ?? 0;
+          if (l1 >= 3 && l2 >= 3 && !newRivalAlliances[loc1] && !newRivalAlliances[loc2]) {
+            newRivalAlliances[loc1] = loc2;
+            newRivalAlliances[loc2] = loc1;
+          }
+        }
+      }
+    }
+    // Break alliances where either member dropped below level 2
+    for (const loc of Object.keys({ ...newRivalAlliances })) {
+      if ((projectedRivals[loc]?.level ?? 0) < 2) {
+        const partner = newRivalAlliances[loc];
+        delete newRivalAlliances[loc];
+        if (partner) delete newRivalAlliances[partner];
+      }
+    }
+
+    const upkeep          = game.crew * 150;
     const dayPrestigeGain = newDay % 10 === 0 ? 5 : 0;
 
     setGame(prev => {
@@ -198,13 +340,15 @@ export function GameProvider({ children }) {
         prestige: prev.prestige ?? 0,
         rivalLevel: newRivalLevel,
         flashDeals: validFlashDeals[locationName] ?? {},
+        gangWar: gangWarActive,
+        wantedPosterActive,
       };
       const marketDrugIds = Object.keys(LOCATION_MARKETS[locationName]?.drugs ?? {});
       const priceSnapshot = Object.fromEntries(
         marketDrugIds.map(id => [id, getMarketPrice(id, locationName, false, snapshotOptions)])
       );
 
-      const next = {
+      let next = {
         ...prev,
         day: newDay,
         location: locationName,
@@ -218,7 +362,7 @@ export function GameProvider({ children }) {
         stockLevels: newStockLevels,
         weather: newWeather,
         wantedLevel: newWanted,
-        pendingEncounter: hasEncounter ? { fine } : null,
+        pendingEncounter: encounterType ? { fine, type: encounterType } : null,
         priceHistory: { ...(prev.priceHistory ?? {}), [locationName]: priceSnapshot },
         rivals: {
           ...(prev.rivals ?? {}),
@@ -230,7 +374,42 @@ export function GameProvider({ children }) {
         prestige: (prev.prestige ?? 0) + dayPrestigeGain,
         scannerActive: false,
         bulkImportCooldown: Math.max(0, (prev.bulkImportCooldown ?? 0) - 1),
+        layLowCooldown: Math.max(0, (prev.layLowCooldown ?? 0) - 1),
+        surveillanceScores: newSurveillance,
+        deaHeat: newDeaHeat,
+        snitchLeaked: newSnitchLeaked,
+        snitchEndDay: newSnitchEndDay,
+        wantedPosterActive,
+        wantedPosterCooloffStart,
+        gangWars: newGangWars,
+        rivalAlliances: newRivalAlliances,
+        pendingRetaliation: null,
       };
+
+      // Apply pending retaliation effects
+      if (prev.pendingRetaliation) {
+        const r = prev.pendingRetaliation;
+        if (r.type === 'stash_robbed' && next.bag.length > 0) {
+          const lossPct = 0.2 + Math.random() * 0.2;
+          next = {
+            ...next,
+            bag: next.bag
+              .map(item => ({ ...item, qty: Math.ceil(item.qty * (1 - lossPct)) }))
+              .filter(i => i.qty > 0),
+          };
+        } else if (r.type === 'crew_injured' && next.crew > 0) {
+          next = {
+            ...next,
+            crew: next.crew - 1,
+            bagCapacity: Math.max(100, next.bagCapacity - 15),
+          };
+        } else if (r.type === 'cash_hit') {
+          next = {
+            ...next,
+            cash: Math.max(0, next.cash - Math.round(500 + Math.random() * 1000)),
+          };
+        }
+      }
 
       return withAchievements(next);
     });
@@ -268,12 +447,14 @@ export function GameProvider({ children }) {
 
       const wantedIncrease = Math.floor(quantity / 10) + (Math.random() > 0.7 ? 1 : 0);
       const curStock = prev.stockLevels[prev.location]?.[drugId] ?? 0;
+      const deaIncrease = totalCost >= 2000 ? 0.5 : 0;
 
       const next = {
         ...prev,
         cash: prev.cash - totalCost,
         bag: newBag,
         wantedLevel: Math.min(5, prev.wantedLevel + wantedIncrease),
+        deaHeat: Math.min(5, (prev.deaHeat ?? 0) + deaIncrease),
         stockLevels: {
           ...prev.stockLevels,
           [prev.location]: {
@@ -310,12 +491,14 @@ export function GameProvider({ children }) {
         .filter(item => item.qty > 0);
       const wantedIncrease = Math.floor(quantity / 15) + (Math.random() > 0.8 ? 1 : 0);
       const prestigeGain   = totalRevenue >= 2000 ? 2 : 0;
+      const deaIncrease    = totalRevenue >= 2000 ? 0.5 : 0;
 
       const next = {
         ...prev,
         cash: prev.cash + totalRevenue,
         bag: newBag,
         wantedLevel: Math.min(5, prev.wantedLevel + wantedIncrease),
+        deaHeat: Math.min(5, (prev.deaHeat ?? 0) + deaIncrease),
         prestige: (prev.prestige ?? 0) + prestigeGain,
         stats: {
           ...(prev.stats ?? {}),
@@ -402,6 +585,51 @@ export function GameProvider({ children }) {
         return withAchievements({
           ...prev,
           bag: [],
+          wantedLevel: Math.max(0, prev.wantedLevel - 2),
+          pendingEncounter: null,
+        });
+      }
+
+      // Undercover sting: decline the deal (walk away clean)
+      if (choice === 'decline') {
+        return withAchievements({
+          ...prev,
+          wantedLevel: Math.min(5, prev.wantedLevel + 1),
+          pendingEncounter: null,
+        });
+      }
+
+      // Undercover sting: accept the deal (instant bust)
+      if (choice === 'accept_deal') {
+        const newBag = prev.bag
+          .map(item => ({ ...item, qty: Math.floor(item.qty * 0.75) }))
+          .filter(i => i.qty > 0);
+        return withAchievements({
+          ...prev,
+          bag: newBag,
+          wantedLevel: Math.min(5, prev.wantedLevel + 2),
+          pendingEncounter: null,
+          stats: { ...(prev.stats ?? {}), timesBusted: ((prev.stats?.timesBusted) ?? 0) + 1 },
+        });
+      }
+
+      // DEA raid: pay the federal fine
+      if (choice === 'dea_pay') {
+        return withAchievements({
+          ...prev,
+          cash: Math.max(0, prev.cash - enc.fine),
+          deaHeat: 0,
+          wantedLevel: Math.max(0, prev.wantedLevel - 1),
+          pendingEncounter: null,
+        });
+      }
+
+      // DEA raid: dump everything, DEA heat clears
+      if (choice === 'dea_dump') {
+        return withAchievements({
+          ...prev,
+          bag: [],
+          deaHeat: 0,
           wantedLevel: Math.max(0, prev.wantedLevel - 2),
           pendingEncounter: null,
         });
@@ -576,13 +804,19 @@ export function GameProvider({ children }) {
           } : i)
         : [...prev.bag, { id: drugId, name: drugName, qty: quantity, avgCost: pricePerUnit, grade, bagKey }];
 
-      const curStock = prev.stockLevels[prev.location]?.[drugId] ?? 0;
+      const curStock   = prev.stockLevels[prev.location]?.[drugId] ?? 0;
+      const rivalLevel = prev.rivals?.[prev.location]?.level ?? 0;
+      const retaliationTypes = ['stash_robbed', 'crew_injured', 'cash_hit'];
+      const newRetaliation = rivalLevel > 0
+        ? { type: retaliationTypes[Math.floor(Math.random() * retaliationTypes.length)] }
+        : null;
       return {
         ...prev,
         cash: prev.cash - totalCost,
         bag: newBag,
         wantedLevel: Math.min(5, prev.wantedLevel + BULK_WANTED_HIT),
         bulkImportCooldown: BULK_COOLDOWN,
+        pendingRetaliation: newRetaliation,
         stockLevels: {
           ...prev.stockLevels,
           [prev.location]: {
@@ -595,6 +829,69 @@ export function GameProvider({ children }) {
           drugsTraded: ((prev.stats?.drugsTraded) ?? 0) + quantity,
         },
       };
+    });
+  }
+
+  // ── Lay Low ───────────────────────────────────────────────────────────────
+  function layLow() {
+    if ((game.layLowCooldown ?? 0) > 0) {
+      throw new Error(`Lay low on cooldown — ${game.layLowCooldown} more days.`);
+    }
+    if (game.day + LAY_LOW_DAYS > 60) {
+      throw new Error('Not enough days left to lay low.');
+    }
+    const diff = DIFF_CONFIG[game.difficulty ?? 'normal'];
+    setGame(prev => {
+      const newDay  = prev.day + LAY_LOW_DAYS;
+      const newDebt = Math.round(prev.debt * Math.pow(1 + diff.rate, LAY_LOW_DAYS));
+      const upkeep  = prev.crew * 150 * LAY_LOW_DAYS;
+      return {
+        ...prev,
+        day: newDay,
+        cash: Math.max(0, prev.cash - upkeep),
+        debt: newDebt,
+        wantedLevel: Math.max(0, prev.wantedLevel - LAY_LOW_HEAT),
+        surveillanceScores: {
+          ...(prev.surveillanceScores ?? {}),
+          [prev.location]: 0,
+        },
+        deaHeat: Math.max(0, (prev.deaHeat ?? 0) - 1),
+        layLowCooldown: LAY_LOW_COOLDOWN,
+        bulkImportCooldown: Math.max(0, (prev.bulkImportCooldown ?? 0) - LAY_LOW_DAYS),
+        tipOffCooldown: Math.max(0, (prev.tipOffCooldown ?? 0) - LAY_LOW_DAYS),
+      };
+    });
+  }
+
+  // ── Rival Takedown ────────────────────────────────────────────────────────
+  function rivalTakedown(locationName) {
+    const rivalData = game.rivals?.[locationName];
+    if (!rivalData || rivalData.level < 1) {
+      throw new Error('No active rival at that location.');
+    }
+    const cost = TAKEDOWN_COSTS[rivalData.level] ?? 2000;
+    if (game.cash < cost) {
+      throw new Error(`Need $${cost.toLocaleString()} for the takedown.`);
+    }
+    setGame(prev => {
+      const newLevel   = Math.max(0, prev.rivals[locationName].level - 2);
+      const newAlliances = { ...(prev.rivalAlliances ?? {}) };
+      const partner    = newAlliances[locationName];
+      if (partner) {
+        delete newAlliances[partner];
+        delete newAlliances[locationName];
+      }
+      return withAchievements({
+        ...prev,
+        cash: prev.cash - cost,
+        prestige: (prev.prestige ?? 0) + 10,
+        rivals: {
+          ...prev.rivals,
+          [locationName]: { ...prev.rivals[locationName], level: newLevel },
+        },
+        rivalAlliances: newAlliances,
+        lastTakedown: { location: locationName, day: prev.day },
+      });
     });
   }
 
@@ -624,6 +921,8 @@ export function GameProvider({ children }) {
       buyConsumable, useItem,
       negotiate,
       bulkImport,
+      layLow,
+      rivalTakedown,
       dismissAchievement, markTutorialSeen,
       resetGame,
     }}>

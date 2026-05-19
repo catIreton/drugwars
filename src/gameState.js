@@ -45,6 +45,17 @@ export const INITIAL_STATE = {
   flashDeals: {},           // { [location]: { [drugId]: { type, mult, expiresDay } } }
   tipOffCooldown: 0,
   locationHeatBonus: {},    // { [location]: { amount, expiresDay } }
+  surveillanceScores: {},   // { [location]: number 0–5 } — triggers undercover sting at 5
+  deaHeat: 0,               // 0–5 federal heat; DEA raid fires when maxed
+  pendingRetaliation: null, // { type: 'stash_robbed'|'crew_injured'|'cash_hit' } — rival payback next travel
+  rivalAlliances: {},       // { [loc]: partnerLoc } — mutual pairs formed at day 30+
+  gangWars: {},             // { [location]: endDay } — active 2-day turf war
+  wantedPosterActive: false,// recognized by vendors even after heat drops (3-day cooloff)
+  wantedPosterCooloffStart: null,
+  snitchLeaked: null,       // location snitch tipped off; guaranteed encounter on arrival
+  snitchEndDay: 0,
+  layLowCooldown: 0,
+  lastTakedown: null,       // { location, day } — ticker headline for 2 days
 };
 
 export function createInitialState(difficulty = 'normal') {
